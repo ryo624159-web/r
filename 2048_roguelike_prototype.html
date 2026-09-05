@@ -9,7 +9,7 @@
 body{margin:0;background:#171717;color:#f5f5f5;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:flex;justify-content:center;min-height:100vh}
 .wrap{width:min(96vw,520px);padding:18px 12px 28px;position:relative;z-index:1}
 /* background ellipse */
-.bg-ellipse{position:fixed;left:50%;top:28%;transform:translateX(-50%);width:1200px;height:420px;background:radial-gradient(ellipse at center, rgba(200,160,50,0.06) 0%, rgba(120,100,40,0.02) 40%, rgba(40,30,20,0.0) 100%);border-radius:50%;pointer-events:none;z-index:0}
+.bg-ellipse{position:fixed;left:50%;top:28%;transform:translateX(-50%);width:1200px;height:420px;background:radial-gradient(ellipse at center, rgba(200,160,50,0.06) 0%, rgba(120,100,40,0.02) 40%, rgba(80,64,32,0.01) 60%), width:1200px;border-radius:50%;z-index:0}
 h1{font-size:28px;margin:4px 0 14px;text-align:center}
 .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
 .card{background:#252525;border-radius:12px;padding:9px;text-align:center}
@@ -26,7 +26,7 @@ h1{font-size:28px;margin:4px 0 14px;text-align:center}
 .playerHpText{font-size:11px;color:#a9f0a9;margin-top:6px}
 .board{background:#8d8274;padding:8px;border-radius:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;touch-action:none}
 .tile{aspect-ratio:1;border-radius:9px;background:#b9b0a5;display:flex;align-items:center;justify-content:center;font-size:clamp(25px,8vw,43px);font-weight:900;color:#333}
-.t2{background:#eee4da}.t4{background:#ede0c8}.t8{background:#f2b179;color:white}.t16{background:#f59563;color:white}.t32{background:#f67c5f;color:white}.t64{background:#f65e3b;color:white}.t128{background:#eee4da}
+.t2{background:#eee4da}.t4{background:#ede0c8}.t8{background:#f2b179;color:white}.t16{background:#f59563;color:white}.t32{background:#f67c5f;color:white}.t64{background:#f65e3b;color:white}.t128{background:#edcf72;color:white}.t256{background:#edcc61;color:white}.t512{background:#edc850;color:white}.t1024{background:#edc53f;color:white}.t2048{background:#edc22e;color:white}
 .controls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px auto 8px;max-width:300px}
 button{border:0;border-radius:11px;padding:12px;background:#333;color:white;font-size:18px;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .dir{height:58px;font-size:24px;touch-action:manipulation}
@@ -45,13 +45,13 @@ button:active{transform:scale(.97);background:#444}
 .hidden{display:none!important}
 
 /* Damage popup */
-.damagePopup{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-size:52px;font-weight:900;padding:6px 10px;border-radius:8px;opacity:0;pointer-events:none;z-index:900;transition:transform .25s,opacity .25s}
+.damagePopup{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-size:52px;font-weight:900;padding:6px 10px;border-radius:8px;opacity:0;pointer-events:none;z-index:900;transition:transform .35s,opacity .25s}
 .damagePopup.show{opacity:1;transform:translate(-50%,-120%)}
 .damagePopup.enemy{color:#ffd966;text-shadow:0 2px 6px #0008}
 .damagePopup.player{color:#ff6b6b;text-shadow:0 2px 6px #0008}
 
 /* shake animation */
-@keyframes shake{0%{transform:translate(0,0)}10%{transform:translate(-8px,0)}20%{transform:translate(8px,0)}30%{transform:translate(-6px,0)}40%{transform:translate(6px,0)}50%{transform:translate(-3px,0)}60%{transform:translate(3px,0)}100%{transform:translate(0,0)}}
+@keyframes shake{0%{transform:translate(0,0)}10%{transform:translate(-8px,0)}20%{transform:translate(8px,0)}30%{transform:translate(-6px,0)}40%{transform:translate(6px,0)}50%{transform:translate(-4px,0)}60%{transform:translate(4px,0)}70%{transform:translate(-2px,0)}80%{transform:translate(2px,0)}90%{transform:translate(-1px,0)}100%{transform:translate(0,0)}}
 .shake{animation:shake .45s cubic-bezier(.25,.46,.45,.94)}
 
 </style>
@@ -135,7 +135,7 @@ function addRandom(){
 function enemyImageDataURL(name){
  const label=name.charAt(0);
  const color="#"+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0');
- const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><rect width='100%' height='100%' rx='20' fill='${color}'/><text x='50%' y='54%' font-size='120' font-family='sans-serif' font-weight='700' fill='white' text-anchor='middle' dominant-baseline='middle'>${label}</text></svg>`;
+ const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><rect width='100%' height='100%' rx='20' fill='${color}'/><text x='50%' y='54%' font-size='120' font-family='sans-serif' text-anchor='middle' fill='${color.startsWith('#')? '#fff':'#000'}'>${label}</text></svg>`;
  return 'data:image/svg+xml;base64,'+btoa(svg);
 }
 
@@ -155,12 +155,10 @@ function render(){
  document.getElementById("playerHp").textContent=playerHp;
  document.getElementById("floor").textContent=floor;
  document.getElementById("score").textContent=score;
- if(enemy){
-   document.getElementById("enemyName").textContent=enemy.name;
-   document.getElementById("enemyHpText").textContent=`${Math.max(0,enemy.hp)} / ${enemy.maxHp}`;
-   document.getElementById("enemyHpText2").textContent=`${Math.max(0,enemy.hp)} / ${enemy.maxHp}`;
-   document.getElementById("enemyHp").style.width=Math.max(0,enemy.hp/enemy.maxHp*100)+"%";
- }
+ document.getElementById("enemyName").textContent=enemy.name;
+ document.getElementById("enemyHpText").textContent=`${Math.max(0,enemy.hp)} / ${enemy.maxHp}`;
+ document.getElementById("enemyHpText2").textContent=`${Math.max(0,enemy.hp)} / ${enemy.maxHp}`;
+ document.getElementById("enemyHp").style.width=Math.max(0,enemy.hp/enemy.maxHp*100)+"%";
  // player hp bar and text
  document.getElementById('playerHpText').textContent = `${playerHp} / ${maxPlayerHp}`;
  document.getElementById('playerHpFill').style.width = Math.max(0,playerHp/maxPlayerHp*100) + "%";
@@ -195,7 +193,6 @@ function showDamage(text,color,target='center'){
 
 function move(dir){
  if(!canMove)return;
- canMove=false; // prevent input during move + enemy turn
  const before=board.slice();
  let gained=[];
  let moved=false;
@@ -222,7 +219,7 @@ function move(dir){
    idx.forEach((bi,k)=>board[bi]=out[k]);
  }
  moved=board.some((v,i)=>v!==before[i]);
- if(!moved){ canMove=true; return; }
+ if(!moved)return;
  addRandom();
  let damage=0;
  gained.forEach(v=>damage+=v);
@@ -236,42 +233,24 @@ function move(dir){
    // visual: show damage over enemy
    showDamage(`${damage}`, '#ffd966', 'enemy');
  } else log("移動したよ。次の一手を考えてね❤");
- if(enemy.hp<=0){
-   // delay win flow slightly so damage animation is visible and DOM updates (avoid perceived freeze)
-   setTimeout(()=>{
-     winBattle();
-   }, 300);
-   return;
- }
- // enemy's turn handled asynchronously inside enemyAttack
+ if(enemy.hp<=0){winBattle();return}
  enemyAttack();
+ render();
+ if(isGameOver())gameOver();
 }
 
 function enemyAttack(){
- // lock input during enemy action
- canMove=false;
  let dmg=Math.max(0,enemy.atk-shield);
  shield=0;
+ playerHp-=dmg;
  if(dmg>0){
-   playerHp-=dmg;
    log(`敵の攻撃！ ${dmg} ダメージ。`);
    // shake screen and show damage near player
    showDamage(`-${dmg}`, '#ff6b6b', 'player');
    document.body.classList.add('shake');
- } else {
-   log('敵の攻撃を無効化した！');
+   setTimeout(()=>document.body.classList.remove('shake'),450);
  }
  if(heal){playerHp=Math.min(maxPlayerHp,playerHp+heal)}
- // after animation, update and return control
- setTimeout(()=>{
-   document.body.classList.remove('shake');
-   render();
-   if(isGameOver()){
-     gameOver();
-   } else {
-     canMove=true;
-   }
- },450);
 }
 
 function winBattle(){
@@ -279,9 +258,8 @@ function winBattle(){
  floor++;
  // full heal on floor clear
  playerHp = maxPlayerHp;
- canMove=false;
  spawnEnemy();
- // show upgrade choices
+ canMove=false;
  showUpgrade();
  render();
 }
@@ -308,9 +286,9 @@ function showUpgrade(){
      if(id==="maxhp"){ maxPlayerHp += 5; playerHp = Math.min(maxPlayerHp, playerHp); }
      if(id==="base"){ baseAttack += 1; }
      document.getElementById("upgradeOverlay").style.display="none";
+     canMove=true;
      // ensure enemy exists
      if(!enemy) spawnEnemy();
-     canMove=true;
      // redraw
      render();
      log(`${n}を獲得！❤`);
