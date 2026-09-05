@@ -98,7 +98,7 @@ button:active{transform:scale(.97);background:#444}
 <div class="overlay" id="upgradeOverlay">
  <div class="modal">
   <h2>LEVEL UP!</h2>
-  <div>���力を1つ選んでね</div>
+  <div>能力を1つ選んでね</div>
   <div class="choices" id="choices"></div>
  </div>
 </div>
@@ -154,10 +154,12 @@ function render(){
  document.getElementById("playerHp").textContent=playerHp;
  document.getElementById("floor").textContent=floor;
  document.getElementById("score").textContent=score;
- document.getElementById("enemyName").textContent=enemy.name;
- document.getElementById("enemyHpText").textContent=`${Math.max(0,enemy.hp)} / ${enemy.maxHp}`;
- document.getElementById("enemyHpText2").textContent=`${Math.max(0,enemy.hp)} / ${enemy.maxHp}`;
- document.getElementById("enemyHp").style.width=Math.max(0,enemy.hp/enemy.maxHp*100)+"%";
+ if(enemy){
+   document.getElementById("enemyName").textContent=enemy.name;
+   document.getElementById("enemyHpText").textContent=`${Math.max(0,enemy.hp)} / ${enemy.maxHp}`;
+   document.getElementById("enemyHpText2").textContent=`${Math.max(0,enemy.hp)} / ${enemy.maxHp}`;
+   document.getElementById("enemyHp").style.width=Math.max(0,enemy.hp/enemy.maxHp*100)+"%";
+ }
  // player hp bar and text
  document.getElementById('playerHpText').textContent = `${playerHp} / ${maxPlayerHp}`;
  document.getElementById('playerHpFill').style.width = Math.max(0,playerHp/maxPlayerHp*100) + "%";
@@ -192,6 +194,7 @@ function showDamage(text,color,target='center'){
 
 function move(dir){
  if(!canMove)return;
+ canMove=false; // prevent input during move + enemy turn
  const before=board.slice();
  let gained=[];
  let moved=false;
@@ -218,7 +221,7 @@ function move(dir){
    idx.forEach((bi,k)=>board[bi]=out[k]);
  }
  moved=board.some((v,i)=>v!==before[i]);
- if(!moved)return;
+ if(!moved){ canMove=true; return; }
  addRandom();
  let damage=0;
  gained.forEach(v=>damage+=v);
@@ -233,23 +236,35 @@ function move(dir){
    showDamage(`${damage}`, '#ffd966', 'enemy');
  } else log("移動したよ。次の一手を考えてね❤");
  if(enemy.hp<=0){winBattle();return}
+ // enemy's turn handled asynchronously inside enemyAttack
  enemyAttack();
- render();
- if(isGameOver())gameOver();
 }
 
 function enemyAttack(){
+ // lock input during enemy action
+ canMove=false;
  let dmg=Math.max(0,enemy.atk-shield);
  shield=0;
- playerHp-=dmg;
  if(dmg>0){
+   playerHp-=dmg;
    log(`敵の攻撃！ ${dmg} ダメージ。`);
    // shake screen and show damage near player
    showDamage(`-${dmg}`, '#ff6b6b', 'player');
    document.body.classList.add('shake');
-   setTimeout(()=>document.body.classList.remove('shake'),450);
+ } else {
+   log('敵の攻撃を無効化した！');
  }
  if(heal){playerHp=Math.min(maxPlayerHp,playerHp+heal)}
+ // after animation, update and return control
+ setTimeout(()=>{
+   document.body.classList.remove('shake');
+   render();
+   if(isGameOver()){
+     gameOver();
+   } else {
+     canMove=true;
+   }
+ },450);
 }
 
 function winBattle(){
@@ -257,8 +272,9 @@ function winBattle(){
  floor++;
  // full heal on floor clear
  playerHp = maxPlayerHp;
- spawnEnemy();
  canMove=false;
+ spawnEnemy();
+ // show upgrade choices
  showUpgrade();
  render();
 }
@@ -285,9 +301,9 @@ function showUpgrade(){
      if(id==="maxhp"){ maxPlayerHp += 5; playerHp = Math.min(maxPlayerHp, playerHp); }
      if(id==="base"){ baseAttack += 1; }
      document.getElementById("upgradeOverlay").style.display="none";
-     canMove=true;
      // ensure enemy exists
      if(!enemy) spawnEnemy();
+     canMove=true;
      // redraw
      render();
      log(`${n}を獲得！❤`);
