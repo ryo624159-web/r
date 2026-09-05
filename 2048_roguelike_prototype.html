@@ -7,7 +7,10 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#171717;color:#f5f5f5;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:flex;justify-content:center;min-height:100vh}
-.wrap{width:min(96vw,520px);padding:18px 12px 28px}
+.wrap{width:min(96vw,520px);padding:18px 12px 28px;position:relative;z-index:1}
+/* background ellipse */
+.bg-ellipse{position:fixed;left:50%;top:28%;transform:translateX(-50%);width:1200px;height:420px;background:radial-gradient(ellipse at center, rgba(200,160,50,0.06) 0%, rgba(120,100,40,0.02) 40%, transparent 60%);border-radius:50%;pointer-events:none;z-index:0}
+
 h1{font-size:28px;margin:4px 0 14px;text-align:center}
 .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
 .card{background:#252525;border-radius:12px;padding:9px;text-align:center}
@@ -18,9 +21,13 @@ h1{font-size:28px;margin:4px 0 14px;text-align:center}
 .hpbar{height:20px;background:#444;border-radius:99px;overflow:hidden;margin-top:8px;position:relative}
 .hp{height:100%;background:linear-gradient(90deg,#ff8a65,#ff5722);width:100%;transition:width .3s}
 .hpText{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;color:white;text-shadow:0 1px 0 #0008;font-size:12px}
+.playerHpContainer{margin-top:8px}
+.playerHpBar{height:10px;background:#334433;border-radius:99px;overflow:hidden;position:relative;margin-top:6px}
+.playerHpFill{height:100%;background:linear-gradient(90deg,#8ce68c,#2ec02e);width:100%;transition:width .3s}
+.playerHpText{font-size:11px;color:#a9f0a9;margin-top:6px}
 .board{background:#8d8274;padding:8px;border-radius:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;touch-action:none}
 .tile{aspect-ratio:1;border-radius:9px;background:#b9b0a5;display:flex;align-items:center;justify-content:center;font-size:clamp(25px,8vw,43px);font-weight:900;color:#333}
-.t2{background:#eee4da}.t4{background:#ede0c8}.t8{background:#f2b179;color:white}.t16{background:#f59563;color:white}.t32{background:#f67c5f;color:white}.t64{background:#f65e3b;color:white}.t128{background:#edcf72;color:#776e65;font-size:clamp(20px,6vw,35px)}.t256{background:#edcc61;color:#776e65;font-size:clamp(20px,6vw,35px)}.t512{background:#edc850;color:white;font-size:clamp(20px,6vw,35px)}.t1024{background:#edc53f;color:white;font-size:clamp(15px,5vw,30px)}.t2048{background:#edc22e;color:white;font-size:clamp(15px,5vw,30px)}
+.t2{background:#eee4da}.t4{background:#ede0c8}.t8{background:#f2b179;color:white}.t16{background:#f59563;color:white}.t32{background:#f67c5f;color:white}.t64{background:#f65e3b;color:white}.t128{background:#edcf72;color:white}.t256{background:#edcc61;color:white}.t512{background:#edc850;color:white}.t1024{background:#edc53f;color:white}.t2048{background:#edc22e;color:white}
 .controls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px auto 8px;max-width:300px}
 button{border:0;border-radius:11px;padding:12px;background:#333;color:white;font-size:18px;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .dir{height:58px;font-size:24px;touch-action:manipulation}
@@ -33,22 +40,33 @@ button:active{transform:scale(.97);background:#444}
 .modal h2{margin:0 0 8px}
 .choices{display:grid;gap:9px;margin-top:14px}
 .choice{text-align:left;background:#333;padding:12px;border-radius:12px;cursor:pointer}
-.choice b{display:block;margin-bottom:3px}.choice small{color:#bbb}
+.choice b{Display:block;margin-bottom:3px}.choice small{color:#bbb}
 .primary{background:#e0a23b;color:#171717;margin-top:12px;width:100%}
 .hidden{display:none!important}
 
 /* Damage popup */
-.damagePopup{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-size:36px;font-weight:900;padding:6px 10px;border-radius:8px;opacity:0;pointer-events:none;z-index:20;transition:transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94)}
+.damagePopup{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-size:52px;font-weight:900;padding:6px 10px;border-radius:8px;opacity:0;pointer-events:none;z-index:20;transition:transform .3s,opacity .3s}
 .damagePopup.show{opacity:1;transform:translate(-50%,-120%)}
 .damagePopup.enemy{color:#ffd966;text-shadow:0 2px 6px #0008}
 .damagePopup.player{color:#ff6b6b;text-shadow:0 2px 6px #0008}
+
+/* screen shake */
+@keyframes shake{0%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}100%{transform:translateX(0)}}
+.shake{animation:shake .45s cubic-bezier(.36,.07,.19,.97)}
+
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="bg-ellipse" aria-hidden="true"></div>
+<div class="wrap" id="wrap">
 <h1>2048 ROGUELIKE</h1>
 <div class="stats">
-  <div class="card"><div class="label">PLAYER HP</div><div class="value" id="playerHp">30</div></div>
+  <div class="card"><div class="label">PLAYER HP</div><div class="value" id="playerHp">30</div>
+    <div class="playerHpContainer">
+      <div class="playerHpBar"><div class="playerHpFill" id="playerHpFill"></div></div>
+      <div class="playerHpText" id="playerHpText">30 / 30</div>
+    </div>
+  </div>
   <div class="card"><div class="label">FLOOR</div><div class="value" id="floor">1</div></div>
   <div class="card"><div class="label">SCORE</div><div class="value" id="score">0</div></div>
 </div>
@@ -96,8 +114,9 @@ button:active{transform:scale(.97);background:#444}
 
 <script>
 const SIZE=4;
-let board=[], playerHp=30, floor=1, score=0, enemy=null;
+let board=[], maxPlayerHp=30, playerHp=30, floor=1, score=0, enemy=null;
 let bonusDamage=0, shield=0, heal=0, comboBonus=0;
+let baseAttack=0; // 基礎攻撃力
 let canMove=false, touchStart=null;
 
 const enemyTypes=[
@@ -117,7 +136,7 @@ function addRandom(){
 function enemyImageDataURL(name){
  const label=name.charAt(0);
  const color="#"+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0');
- const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><rect width='100%' height='100%' rx='20' fill='${color}'/><text x='50%' y='54%' font-size='120' font-family='sans-serif' font-weight='900' fill='white' text-anchor='middle' dominant-baseline='middle'>${label}</text></svg>`;
+ const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><rect width='100%' height='100%' rx='20' fill='${color}'/><text x='50%' y='54%' font-size='120' font-family='sans-serif' font-weight='700' text-anchor='middle' fill='#fff'>${label}</text></svg>`;
  return 'data:image/svg+xml;base64,'+btoa(svg);
 }
 
@@ -141,12 +160,19 @@ function render(){
  document.getElementById("enemyHpText").textContent=`${Math.max(0,enemy.hp)} / ${enemy.maxHp}`;
  document.getElementById("enemyHpText2").textContent=`${Math.max(0,enemy.hp)} / ${enemy.maxHp}`;
  document.getElementById("enemyHp").style.width=Math.max(0,enemy.hp/enemy.maxHp*100)+"%";
+ // player hp bar
+ document.getElementById('playerHpFill').style.width=Math.max(0,playerHp/maxPlayerHp*100)+"%";
+ document.getElementById('playerHpText').textContent = `${Math.max(0,playerHp)} / ${maxPlayerHp}`;
 }
 
 function log(s){document.getElementById("log").textContent=s}
 
 function showDamage(text,color,target='center'){
- const el=document.createElement('div'); el.className='damagePopup'; el.textContent=text;
+ const el=document.createElement('div');
+ let cls='damagePopup';
+ if(target==='enemy')cls+=' enemy';
+ else if(target==='player')cls+=' player';
+ el.className=cls; el.textContent=text;
  if(color) el.style.color=color;
  document.body.appendChild(el);
  // position
@@ -156,7 +182,6 @@ function showDamage(text,color,target='center'){
    el.style.left=(rect.left + rect.width/2)+'px';
    el.style.top=(rect.top + rect.height/2 - 8)+'px';
  } else if(target==='player'){
-   // near bottom-left (player hp area)
    const hpEl=document.getElementById('playerHp');
    const rect=hpEl.getBoundingClientRect();
    el.style.left=(rect.left + rect.width/2)+'px';
@@ -202,7 +227,7 @@ function move(dir){
  let damage=0;
  gained.forEach(v=>damage+=v);
  if(gained.length>0){
-   damage=Math.round(damage*(1+comboBonus*.15))+bonusDamage;
+   damage=Math.round(damage*(1+comboBonus*.15))+bonusDamage+baseAttack;
    enemy.hp-=damage;
    score+=damage;
    log(`合体攻撃！ ${damage} ダメージ❤`);
@@ -221,26 +246,36 @@ function enemyAttack(){
  playerHp-=dmg;
  if(dmg>0){
    log(`敵の攻撃！ ${dmg} ダメージ。`);
-   showDamage(`-${dmg}`, '#ff6b6b', 'center');
+   // shake screen
+   document.getElementById('wrap').classList.add('shake');
+   setTimeout(()=>document.getElementById('wrap').classList.remove('shake'),500);
+   showDamage(`-${dmg}`, '#ff6b6b', 'player');
  }
- if(heal){playerHp=Math.min(30+heal*5,playerHp+heal)}
+ if(heal){playerHp=Math.min(maxPlayerHp,playerHp+heal)}
 }
 
 function winBattle(){
  score+=enemy.maxHp;
  floor++;
- if(heal)playerHp=Math.min(30+heal*5,playerHp+heal);
+ // full heal on floor clear
+ playerHp = maxPlayerHp;
+ if(heal)playerHp=Math.min(maxPlayerHp,playerHp+heal);
  spawnEnemy();
  canMove=false;
- showUpgrade();
+ // ensure the upgrade overlay is shown after UI updates
  render();
+ setTimeout(()=>{
+   showUpgrade();
+ },60);
 }
 
 const upgrades=[
  ["強化合体","合体攻撃のダメージ +25","damage"],
  ["鉄壁","次の敵攻撃を5軽減","shield"],
  ["再生","毎ターンHPを2回復","heal"],
- ["連鎖強化","1ターンの合体数に応じて攻撃力UP","combo"]
+ ["連鎖強化","1ターンの合体数に応じて攻撃力UP","combo"],
+ ["生命力強化","最大HPを5アップ","maxhp"],
+ ["基礎強化","基礎攻撃力を1上げる","base"]
 ];
 function showUpgrade(){
  const box=document.getElementById("choices");box.innerHTML="";
@@ -248,8 +283,14 @@ function showUpgrade(){
  picks.forEach(([n,d,id])=>{
    const b=document.createElement("button");b.className="choice";
    b.innerHTML=`<b>${n}</b><small>${d}</small>`;
-   b.onclick=()=>{if(id==="damage")bonusDamage+=2;if(id==="shield")shield+=5;if(id==="heal")heal+=2;if(id==="combo")comboBonus++;
-     document.getElementById("upgradeOverlay").style.display="none";canMove=true;log(`${n}を獲得！❤`);
+   b.onclick=()=>{
+     if(id==="damage")bonusDamage+=2;
+     if(id==="shield")shield+=5;
+     if(id==="heal")heal+=2;
+     if(id==="combo")comboBonus++;
+     if(id==="maxhp"){ maxPlayerHp+=5; playerHp = Math.min(maxPlayerHp, playerHp+5); }
+     if(id==="base"){ baseAttack+=1; }
+     document.getElementById("upgradeOverlay").style.display="none";canMove=true;render();log(`${n}を獲得！❤`);
    };
    box.appendChild(b);
  });
@@ -276,7 +317,7 @@ function gameOver(){
 }
 
 function resetGame(){
- board=emptyBoard(); addRandom(); addRandom(); playerHp=30; floor=1; score=0; bonusDamage=0; shield=0; heal=0; comboBonus=0; canMove=true;
+ board=emptyBoard(); addRandom(); addRandom(); maxPlayerHp=30; playerHp=maxPlayerHp; floor=1; score=0; bonusDamage=0; shield=0; heal=0; comboBonus=0; baseAttack=0; canMove=true;
  document.getElementById('gameOverOverlay').style.display='none';
  document.getElementById('upgradeOverlay').style.display='none';
  document.getElementById('startOverlay').style.display='none';
