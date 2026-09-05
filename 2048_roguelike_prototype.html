@@ -35,17 +35,17 @@ button{border:0;border-radius:11px;padding:12px;background:#333;color:white;font
 button:active{transform:scale(.97);background:#444}
 .help{text-align:center;color:#aaa;font-size:12px;margin:8px 0}
 .log{background:#202020;border-radius:12px;padding:10px;min-height:42px;font-size:13px;line-height:1.45}
-.overlay{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:20px;z-index:5}
+.overlay{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
 .modal{width:min(94vw,480px);background:#252525;border-radius:18px;padding:20px;text-align:center}
 .modal h2{margin:0 0 8px}
 .choices{display:grid;gap:9px;margin-top:14px}
 .choice{text-align:left;background:#333;padding:12px;border-radius:12px;cursor:pointer}
-.choice b{Display:block;margin-bottom:3px}.choice small{color:#bbb}
+.choice b{display:block;margin-bottom:3px}.choice small{color:#bbb}
 .primary{background:#e0a23b;color:#171717;margin-top:12px;width:100%}
 .hidden{display:none!important}
 
 /* Damage popup */
-.damagePopup{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-size:52px;font-weight:900;padding:6px 10px;border-radius:8px;opacity:0;pointer-events:none;z-index:20;transition:transform .3s,opacity .3s}
+.damagePopup{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-size:52px;font-weight:900;padding:6px 10px;border-radius:8px;opacity:0;pointer-events:none;z-index:120;transition:transform .35s,opacity .35s}
 .damagePopup.show{opacity:1;transform:translate(-50%,-120%)}
 .damagePopup.enemy{color:#ffd966;text-shadow:0 2px 6px #0008}
 .damagePopup.player{color:#ff6b6b;text-shadow:0 2px 6px #0008}
@@ -88,7 +88,7 @@ button:active{transform:scale(.97);background:#444}
 <div class="log" id="log">タイルを動かして合体させよう❤</div>
 </div>
 
-<div class="overlay" id="startOverlay" style="display:flex">
+<div class="overlay" id="startOverlay" style="display:flex;z-index:60">
  <div class="modal">
   <h2>2048 ROGUELIKE</h2>
   <div>数字を合体させて敵を倒そう！❤</div>
@@ -194,11 +194,14 @@ function showDamage(text,color,target='center'){
  setTimeout(()=>el.remove(),900);
 }
 
+function lockInput(){ canMove=false; }
+function unlockInput(){ canMove=true; }
+
 function move(dir){
- if(!canMove)return;
+ if(!canMove) return;
+ lockInput();
  const before=board.slice();
  let gained=[];
- let moved=false;
  for(let line=0;line<4;line++){
    let idx=[];
    for(let k=0;k<4;k++){
@@ -221,8 +224,9 @@ function move(dir){
    if(dir==="right"||dir==="down")out.reverse();
    idx.forEach((bi,k)=>board[bi]=out[k]);
  }
- moved=board.some((v,i)=>v!==before[i]);
- if(!moved)return;
+ // robust moved detection
+ const moved = JSON.stringify(before)!==JSON.stringify(board);
+ if(!moved){ unlockInput(); return; }
  addRandom();
  let damage=0;
  gained.forEach(v=>damage+=v);
@@ -231,20 +235,39 @@ function move(dir){
    enemy.hp-=damage;
    score+=damage;
    log(`合体攻撃！ ${damage} ダメージ❤`);
-   // visual: show damage over enemy
+   // visual: show damage over enemy first
    showDamage(`${damage}`, '#ffd966', 'enemy');
- } else log("移動したよ。次の一手を考えてね❤");
- if(enemy.hp<=0){winBattle();return}
- enemyAttack();
- render();
- if(isGameOver())gameOver();
+   render();
+   // if enemy died, show win sequence after short delay so player sees damage popup
+   if(enemy.hp<=0){
+     setTimeout(()=>{ winBattle(); }, 450);
+     return;
+   }
+   // otherwise enemy retaliates after a short delay (let damage popup show)
+   setTimeout(()=>{
+     enemyAttack();
+     render();
+     if(isGameOver()) { gameOver(); return; }
+     unlockInput();
+   }, 450);
+ } else {
+   // no combination: immediate move, then enemy attacks after small delay
+   render();
+   setTimeout(()=>{
+     enemyAttack();
+     render();
+     if(isGameOver()) { gameOver(); return; }
+     unlockInput();
+   }, 200);
+ }
 }
 
 function enemyAttack(){
  let dmg=Math.max(0,enemy.atk-shield);
  shield=0;
- playerHp-=dmg;
  if(dmg>0){
+   // apply damage with small delay to allow shake visual
+   playerHp-=dmg;
    log(`敵の攻撃！ ${dmg} ダメージ。`);
    // shake screen
    document.getElementById('wrap').classList.add('shake');
@@ -262,11 +285,14 @@ function winBattle(){
  if(heal)playerHp=Math.min(maxPlayerHp,playerHp+heal);
  spawnEnemy();
  canMove=false;
- // ensure the upgrade overlay is shown after UI updates
+ // ensure the upgrade overlay is shown after UI updates; use RAF then display
  render();
- setTimeout(()=>{
-   showUpgrade();
- },60);
+ requestAnimationFrame(()=>{
+   // small timeout to ensure DOM updated and any animations finished
+   setTimeout(()=>{
+     showUpgrade();
+   },60);
+ });
 }
 
 const upgrades=[
@@ -284,17 +310,23 @@ function showUpgrade(){
    const b=document.createElement("button");b.className="choice";
    b.innerHTML=`<b>${n}</b><small>${d}</small>`;
    b.onclick=()=>{
+     // apply upgrade
      if(id==="damage")bonusDamage+=2;
      if(id==="shield")shield+=5;
      if(id==="heal")heal+=2;
      if(id==="combo")comboBonus++;
      if(id==="maxhp"){ maxPlayerHp+=5; playerHp = Math.min(maxPlayerHp, playerHp+5); }
      if(id==="base"){ baseAttack+=1; }
-     document.getElementById("upgradeOverlay").style.display="none";canMove=true;render();log(`${n}を獲得！❤`);
+     document.getElementById("upgradeOverlay").style.display="none";
+     unlockInput();
+     render();
+     log(`${n}を獲得！❤`);
    };
    box.appendChild(b);
  });
+ // show overlay and lock input
  document.getElementById("upgradeOverlay").style.display="flex";
+ canMove=false;
 }
 
 function isGameOver(){
