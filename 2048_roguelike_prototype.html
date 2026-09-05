@@ -9,8 +9,7 @@
 body{margin:0;background:#171717;color:#f5f5f5;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:flex;justify-content:center;min-height:100vh}
 .wrap{width:min(96vw,520px);padding:18px 12px 28px;position:relative;z-index:1}
 /* background ellipse */
-.bg-ellipse{position:fixed;left:50%;top:28%;transform:translateX(-50%);width:1200px;height:420px;background:radial-gradient(ellipse at center, rgba(200,160,50,0.06) 0%, rgba(120,100,40,0.02) 40%, transparent 60%);border-radius:50%;pointer-events:none;z-index:0}
-
+.bg-ellipse{position:fixed;left:50%;top:28%;transform:translateX(-50%);width:1200px;height:420px;background:radial-gradient(ellipse at center, rgba(200,160,50,0.06) 0%, rgba(120,100,40,0.02) 40%, rgba(40,30,20,0.0) 100%);border-radius:50%;pointer-events:none;z-index:0}
 h1{font-size:28px;margin:4px 0 14px;text-align:center}
 .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
 .card{background:#252525;border-radius:12px;padding:9px;text-align:center}
@@ -27,7 +26,7 @@ h1{font-size:28px;margin:4px 0 14px;text-align:center}
 .playerHpText{font-size:11px;color:#a9f0a9;margin-top:6px}
 .board{background:#8d8274;padding:8px;border-radius:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;touch-action:none}
 .tile{aspect-ratio:1;border-radius:9px;background:#b9b0a5;display:flex;align-items:center;justify-content:center;font-size:clamp(25px,8vw,43px);font-weight:900;color:#333}
-.t2{background:#eee4da}.t4{background:#ede0c8}.t8{background:#f2b179;color:white}.t16{background:#f59563;color:white}.t32{background:#f67c5f;color:white}.t64{background:#f65e3b;color:white}.t128{background:#edcf72;color:white}.t256{background:#edcc61;color:white}.t512{background:#edc850;color:white}.t1024{background:#edc53f;color:white}.t2048{background:#edc22e;color:white}
+.t2{background:#eee4da}.t4{background:#ede0c8}.t8{background:#f2b179;color:white}.t16{background:#f59563;color:white}.t32{background:#f67c5f;color:white}.t64{background:#f65e3b;color:white}.t128{background:#eee4da}
 .controls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px auto 8px;max-width:300px}
 button{border:0;border-radius:11px;padding:12px;background:#333;color:white;font-size:18px;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .dir{height:58px;font-size:24px;touch-action:manipulation}
@@ -45,14 +44,14 @@ button:active{transform:scale(.97);background:#444}
 .hidden{display:none!important}
 
 /* Damage popup */
-.damagePopup{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-size:52px;font-weight:900;padding:6px 10px;border-radius:8px;opacity:0;pointer-events:none;z-index:120;transition:transform .35s,opacity .35s}
+.damagePopup{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-size:52px;font-weight:900;padding:6px 10px;border-radius:8px;opacity:0;pointer-events:none;z-index:120;transition:transform .25s,opacity .25s}
 .damagePopup.show{opacity:1;transform:translate(-50%,-120%)}
 .damagePopup.enemy{color:#ffd966;text-shadow:0 2px 6px #0008}
 .damagePopup.player{color:#ff6b6b;text-shadow:0 2px 6px #0008}
 
-/* screen shake */
-@keyframes shake{0%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}100%{transform:translateX(0)}}
-.shake{animation:shake .45s cubic-bezier(.36,.07,.19,.97)}
+/* shake animation */
+@keyframes shake{0%{transform:translate(0,0)}10%{transform:translate(-8px,0)}20%{transform:translate(8px,0)}30%{transform:translate(-6px,0)}40%{transform:translate(6px,0)}50%{transform:translate(-3px,0)}60%{transform:translate(3px,0)}100%{transform:translate(0,0)}}
+.shake{animation:shake .45s cubic-bezier(.25,.46,.45,.94)}
 
 </style>
 </head>
@@ -88,7 +87,7 @@ button:active{transform:scale(.97);background:#444}
 <div class="log" id="log">タイルを動かして合体させよう❤</div>
 </div>
 
-<div class="overlay" id="startOverlay" style="display:flex;z-index:60">
+<div class="overlay" id="startOverlay" style="display:flex">
  <div class="modal">
   <h2>2048 ROGUELIKE</h2>
   <div>数字を合体させて敵を倒そう！❤</div>
@@ -99,7 +98,7 @@ button:active{transform:scale(.97);background:#444}
 <div class="overlay" id="upgradeOverlay">
  <div class="modal">
   <h2>LEVEL UP!</h2>
-  <div>能力を1つ選んでね</div>
+  <div>���力を1つ選んでね</div>
   <div class="choices" id="choices"></div>
  </div>
 </div>
@@ -114,11 +113,9 @@ button:active{transform:scale(.97);background:#444}
 
 <script>
 const SIZE=4;
-let board=[], maxPlayerHp=30, playerHp=30, floor=1, score=0, enemy=null;
+let board=[], playerHp=30, maxPlayerHp=30, baseAttack=0, floor=1, score=0, enemy=null;
 let bonusDamage=0, shield=0, heal=0, comboBonus=0;
-let baseAttack=0; // 基礎攻撃力
 let canMove=false, touchStart=null;
-let pendingTimeout=null;
 
 const enemyTypes=[
  {name:"スライム",hp:20,atk:3},
@@ -137,7 +134,7 @@ function addRandom(){
 function enemyImageDataURL(name){
  const label=name.charAt(0);
  const color="#"+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0');
- const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><rect width='100%' height='100%' rx='20' fill='${color}'/><text x='50%' y='54%' font-size='120' font-family='sans-serif' font-weight='700' text-anchor='middle' fill='#fff'>${label}</text></svg>`;
+ const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><rect width='100%' height='100%' rx='20' fill='${color}'/><text x='50%' y='54%' font-size='120' font-family='sans-serif' font-weight='700' fill='white' text-anchor='middle' dominant-baseline='middle'>${label}</text></svg>`;
  return 'data:image/svg+xml;base64,'+btoa(svg);
 }
 
@@ -157,27 +154,19 @@ function render(){
  document.getElementById("playerHp").textContent=playerHp;
  document.getElementById("floor").textContent=floor;
  document.getElementById("score").textContent=score;
- if(enemy){
-   document.getElementById("enemyName").textContent=enemy.name;
-   document.getElementById("enemyHpText").textContent=`${Math.max(0,enemy.hp)} / ${enemy.maxHp}`;
-   document.getElementById("enemyHpText2").textContent=`${Math.max(0,enemy.hp)} / ${enemy.maxHp}`;
-   document.getElementById("enemyHp").style.width=Math.max(0,enemy.hp/enemy.maxHp*100)+"%";
- }
- // player hp bar
- document.getElementById('playerHpFill').style.width=Math.max(0,playerHp/maxPlayerHp*100)+"%";
- document.getElementById('playerHpText').textContent = `${Math.max(0,playerHp)} / ${maxPlayerHp}`;
+ document.getElementById("enemyName").textContent=enemy.name;
+ document.getElementById("enemyHpText").textContent=`${Math.max(0,enemy.hp)} / ${enemy.maxHp}`;
+ document.getElementById("enemyHpText2").textContent=`${Math.max(0,enemy.hp)} / ${enemy.maxHp}`;
+ document.getElementById("enemyHp").style.width=Math.max(0,enemy.hp/enemy.maxHp*100)+"%";
+ // player hp bar and text
+ document.getElementById('playerHpText').textContent = `${playerHp} / ${maxPlayerHp}`;
+ document.getElementById('playerHpFill').style.width = Math.max(0,playerHp/maxPlayerHp*100) + "%";
 }
 
 function log(s){document.getElementById("log").textContent=s}
 
-function clearPendingTimeout(){ if(pendingTimeout){ clearTimeout(pendingTimeout); pendingTimeout=null; } }
-
 function showDamage(text,color,target='center'){
- const el=document.createElement('div');
- let cls='damagePopup';
- if(target==='enemy')cls+=' enemy';
- else if(target==='player')cls+=' player';
- el.className=cls; el.textContent=text;
+ const el=document.createElement('div'); el.className='damagePopup'; el.textContent=text;
  if(color) el.style.color=color;
  document.body.appendChild(el);
  // position
@@ -186,11 +175,13 @@ function showDamage(text,color,target='center'){
    const rect=enemyEl.getBoundingClientRect();
    el.style.left=(rect.left + rect.width/2)+'px';
    el.style.top=(rect.top + rect.height/2 - 8)+'px';
+   el.classList.add('enemy');
  } else if(target==='player'){
-   const hpEl=document.getElementById('playerHp');
+   const hpEl=document.getElementById('playerHpText');
    const rect=hpEl.getBoundingClientRect();
    el.style.left=(rect.left + rect.width/2)+'px';
    el.style.top=(rect.top + rect.height/2 + 10)+'px';
+   el.classList.add('player');
  } else {
    el.style.left='50%'; el.style.top='50%';
  }
@@ -199,14 +190,11 @@ function showDamage(text,color,target='center'){
  setTimeout(()=>el.remove(),900);
 }
 
-function lockInput(){ canMove=false; }
-function unlockInput(){ canMove=true; }
-
 function move(dir){
- if(!canMove) return;
- lockInput();
+ if(!canMove)return;
  const before=board.slice();
  let gained=[];
+ let moved=false;
  for(let line=0;line<4;line++){
    let idx=[];
    for(let k=0;k<4;k++){
@@ -229,64 +217,37 @@ function move(dir){
    if(dir==="right"||dir==="down")out.reverse();
    idx.forEach((bi,k)=>board[bi]=out[k]);
  }
- // robust moved detection
- const moved = JSON.stringify(before)!==JSON.stringify(board);
- if(!moved){ unlockInput(); return; }
+ moved=board.some((v,i)=>v!==before[i]);
+ if(!moved)return;
  addRandom();
  let damage=0;
  gained.forEach(v=>damage+=v);
  if(gained.length>0){
-   damage=Math.round(damage*(1+comboBonus*.15))+bonusDamage+baseAttack;
+   // add base attack
+   damage += baseAttack;
+   damage=Math.round(damage*(1+comboBonus*.15))+bonusDamage;
    enemy.hp-=damage;
    score+=damage;
    log(`合体攻撃！ ${damage} ダメージ❤`);
-   // visual: show damage over enemy first
+   // visual: show damage over enemy
    showDamage(`${damage}`, '#ffd966', 'enemy');
-   render();
-   // if enemy died, show win sequence
-   if(enemy.hp<=0){
-     enemy.hp=0;
-     clearPendingTimeout();
-     // showUpgrade synchronously on next frame so UI doesn't lock without overlay
-     requestAnimationFrame(()=>{
-       winBattle();
-     });
-     return;
-   }
-   // otherwise enemy retaliates after a short delay (let damage popup show)
-   clearPendingTimeout();
-   pendingTimeout = setTimeout(()=>{
-     enemyAttack();
-     render();
-     if(isGameOver()) { gameOver(); return; }
-     unlockInput();
-     pendingTimeout=null;
-   }, 450);
- } else {
-   // no combination: immediate move, then enemy attacks after small delay
-   render();
-   clearPendingTimeout();
-   pendingTimeout = setTimeout(()=>{
-     enemyAttack();
-     render();
-     if(isGameOver()) { gameOver(); return; }
-     unlockInput();
-     pendingTimeout=null;
-   }, 200);
- }
+ } else log("移動したよ。次の一手を考えてね❤");
+ if(enemy.hp<=0){winBattle();return}
+ enemyAttack();
+ render();
+ if(isGameOver())gameOver();
 }
 
 function enemyAttack(){
  let dmg=Math.max(0,enemy.atk-shield);
  shield=0;
+ playerHp-=dmg;
  if(dmg>0){
-   // apply damage with small delay to allow shake visual
-   playerHp-=dmg;
    log(`敵の攻撃！ ${dmg} ダメージ。`);
-   // shake screen
-   document.getElementById('wrap').classList.add('shake');
-   setTimeout(()=>document.getElementById('wrap').classList.remove('shake'),500);
+   // shake screen and show damage near player
    showDamage(`-${dmg}`, '#ff6b6b', 'player');
+   document.body.classList.add('shake');
+   setTimeout(()=>document.body.classList.remove('shake'),450);
  }
  if(heal){playerHp=Math.min(maxPlayerHp,playerHp+heal)}
 }
@@ -296,13 +257,10 @@ function winBattle(){
  floor++;
  // full heal on floor clear
  playerHp = maxPlayerHp;
- if(heal)playerHp=Math.min(maxPlayerHp,playerHp+heal);
- // keep current enemy visual (hp 0) so player sees defeat
+ spawnEnemy();
  canMove=false;
- clearPendingTimeout();
- render();
- // Show upgrade overlay immediately (no pending timeout) to avoid timing issues
  showUpgrade();
+ render();
 }
 
 const upgrades=[
@@ -315,35 +273,28 @@ const upgrades=[
 ];
 function showUpgrade(){
  const box=document.getElementById("choices");box.innerHTML="";
- // ensure overlay is topmost
- const upOverlay = document.getElementById('upgradeOverlay');
- upOverlay.style.zIndex = 999;
- // present picks
  const picks=[...upgrades].sort(()=>Math.random()-.5).slice(0,3);
  picks.forEach(([n,d,id])=>{
    const b=document.createElement("button");b.className="choice";
    b.innerHTML=`<b>${n}</b><small>${d}</small>`;
    b.onclick=()=>{
-     // apply upgrade
      if(id==="damage")bonusDamage+=2;
      if(id==="shield")shield+=5;
      if(id==="heal")heal+=2;
      if(id==="combo")comboBonus++;
-     if(id==="maxhp"){ maxPlayerHp+=5; playerHp = Math.min(maxPlayerHp, playerHp+5); }
-     if(id==="base"){ baseAttack+=1; }
-     // hide overlay, spawn next enemy and allow input
-     upOverlay.style.display = 'none';
-     // spawn next enemy for the new floor
-     spawnEnemy();
+     if(id==="maxhp"){ maxPlayerHp += 5; playerHp = Math.min(maxPlayerHp, playerHp); }
+     if(id==="base"){ baseAttack += 1; }
+     document.getElementById("upgradeOverlay").style.display="none";
+     canMove=true;
+     // ensure enemy exists
+     if(!enemy) spawnEnemy();
+     // redraw
      render();
-     unlockInput();
      log(`${n}を獲得！❤`);
    };
    box.appendChild(b);
  });
- // show overlay and lock input
- upOverlay.style.display="flex";
- canMove=false;
+ document.getElementById("upgradeOverlay").style.display="flex";
 }
 
 function isGameOver(){
@@ -366,7 +317,8 @@ function gameOver(){
 }
 
 function resetGame(){
- board=emptyBoard(); addRandom(); addRandom(); maxPlayerHp=30; playerHp=maxPlayerHp; floor=1; score=0; bonusDamage=0; shield=0; heal=0; comboBonus=0; baseAttack=0; canMove=true;
+ board=emptyBoard(); addRandom(); addRandom(); playerHp=maxPlayerHp; floor=1; score=0; bonusDamage=0; shield=0; heal=0; comboBonus=0; baseAttack=0;
+ canMove=true;
  document.getElementById('gameOverOverlay').style.display='none';
  document.getElementById('upgradeOverlay').style.display='none';
  document.getElementById('startOverlay').style.display='none';
