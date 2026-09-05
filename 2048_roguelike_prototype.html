@@ -20,7 +20,7 @@ h1{font-size:28px;margin:4px 0 14px;text-align:center}
 .hpText{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:700;color:white;text-shadow:0 1px 0 #0008;font-size:12px}
 .board{background:#8d8274;padding:8px;border-radius:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;touch-action:none}
 .tile{aspect-ratio:1;border-radius:9px;background:#b9b0a5;display:flex;align-items:center;justify-content:center;font-size:clamp(25px,8vw,43px);font-weight:900;color:#333}
-.t2{background:#eee4da}.t4{background:#ede0c8}.t8{background:#f2b179;color:white}.t16{background:#f59563;color:white}.t32{background:#f67c5f;color:white}.t64{background:#f65e3b;color:white}.t128{background:#edcf72;color:white;font-size:clamp(22px,7vw,36px)}.t256{background:#edcc61;color:white;font-size:clamp(22px,7vw,36px)}.t512{background:#edc850;color:white;font-size:clamp(22px,7vw,36px)}.t1024,.t2048,.t4096{background:#e8b93e;color:white;font-size:clamp(19px,6vw,32px)}
+.t2{background:#eee4da}.t4{background:#ede0c8}.t8{background:#f2b179;color:white}.t16{background:#f59563;color:white}.t32{background:#f67c5f;color:white}.t64{background:#f65e3b;color:white}.t128{background:#edcf72;color:#776e65;font-size:clamp(20px,6vw,35px)}.t256{background:#edcc61;color:#776e65;font-size:clamp(20px,6vw,35px)}.t512{background:#edc850;color:white;font-size:clamp(20px,6vw,35px)}.t1024{background:#edc53f;color:white;font-size:clamp(15px,5vw,30px)}.t2048{background:#edc22e;color:white;font-size:clamp(15px,5vw,30px)}
 .controls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px auto 8px;max-width:300px}
 button{border:0;border-radius:11px;padding:12px;background:#333;color:white;font-size:18px;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .dir{height:58px;font-size:24px;touch-action:manipulation}
@@ -32,13 +32,13 @@ button:active{transform:scale(.97);background:#444}
 .modal{width:min(94vw,480px);background:#252525;border-radius:18px;padding:20px;text-align:center}
 .modal h2{margin:0 0 8px}
 .choices{display:grid;gap:9px;margin-top:14px}
-.choice{text-align:left;background:#333;padding:12px;border-radius:12px}
+.choice{text-align:left;background:#333;padding:12px;border-radius:12px;cursor:pointer}
 .choice b{display:block;margin-bottom:3px}.choice small{color:#bbb}
 .primary{background:#e0a23b;color:#171717;margin-top:12px;width:100%}
 .hidden{display:none!important}
 
 /* Damage popup */
-.damagePopup{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-size:36px;font-weight:900;padding:6px 10px;border-radius:8px;opacity:0;pointer-events:none;z-index:20;transition:transform .7s cubic-bezier(.2,.8,.2,1),opacity .7s}
+.damagePopup{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font-size:36px;font-weight:900;padding:6px 10px;border-radius:8px;opacity:0;pointer-events:none;z-index:20;transition:transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94)}
 .damagePopup.show{opacity:1;transform:translate(-50%,-120%)}
 .damagePopup.enemy{color:#ffd966;text-shadow:0 2px 6px #0008}
 .damagePopup.player{color:#ff6b6b;text-shadow:0 2px 6px #0008}
@@ -117,7 +117,7 @@ function addRandom(){
 function enemyImageDataURL(name){
  const label=name.charAt(0);
  const color="#"+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0');
- const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><rect width='100%' height='100%' rx='20' fill='${color}'/><text x='50%' y='54%' font-size='120' font-family='sans-serif' font-weight='700' fill='rgba(255,255,255,0.95)' text-anchor='middle' dominant-baseline='middle'>${label}</text></svg>`;
+ const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><rect width='100%' height='100%' rx='20' fill='${color}'/><text x='50%' y='54%' font-size='120' font-family='sans-serif' font-weight='900' fill='white' text-anchor='middle' dominant-baseline='middle'>${label}</text></svg>`;
  return 'data:image/svg+xml;base64,'+btoa(svg);
 }
 
@@ -283,30 +283,51 @@ function resetGame(){
  spawnEnemy(); render(); log('新しくゲームを開始しました！矢印で動かしてね❤');
 }
 
-// input handlers
-document.querySelectorAll("[data-dir]").forEach(b=>b.onclick=()=>move(b.dataset.dir));
-document.addEventListener("keydown",e=>{
- const m={ArrowUp:"up",w:"up",W:"up",ArrowDown:"down",s:"down",S:"down",ArrowLeft:"left",a:"left",A:"left",ArrowRight:"right",d:"right",D:"right"};
- if(m[e.key]){e.preventDefault();move(m[e.key])}
-});
-document.addEventListener("touchmove",e=>{ if(touchStart) e.preventDefault(); },{passive:false});
-const boardEl=document.getElementById("board");
-boardEl.addEventListener("touchstart",e=>{touchStart=e.touches[0]},{passive:true});
-boardEl.addEventListener("touchend",e=>{
- if(!touchStart)return;
- const t=e.changedTouches[0],dx=t.clientX-touchStart.clientX,dy=t.clientY-touchStart.clientY;
- touchStart=null;
- if(Math.max(Math.abs(dx),Math.abs(dy))<25)return;
- move(Math.abs(dx)>Math.abs(dy)?(dx>0?"right":"left"):(dy>0?"down":"up"));
-},{passive:true});
+// Initialize everything after DOM is ready
+function initGame(){
+ // input handlers for direction buttons
+ document.querySelectorAll("[data-dir]").forEach(b=>{
+   b.addEventListener("click", ()=>move(b.dataset.dir));
+ });
+ 
+ // keyboard controls
+ document.addEventListener("keydown",e=>{
+   const m={ArrowUp:"up",w:"up",W:"up",ArrowDown:"down",s:"down",S:"down",ArrowLeft:"left",a:"left",A:"left",ArrowRight:"right",d:"right",D:"right"};
+   if(m[e.key]){e.preventDefault();move(m[e.key])}
+ });
+ 
+ // touch controls
+ document.addEventListener("touchmove",e=>{ if(touchStart) e.preventDefault(); },{passive:false});
+ const boardEl=document.getElementById("board");
+ boardEl.addEventListener("touchstart",e=>{touchStart=e.touches[0]},{passive:true});
+ boardEl.addEventListener("touchend",e=>{
+   if(!touchStart)return;
+   const t=e.changedTouches[0],dx=t.clientX-touchStart.clientX,dy=t.clientY-touchStart.clientY;
+   touchStart=null;
+   if(Math.max(Math.abs(dx),Math.abs(dy))<25)return;
+   move(Math.abs(dx)>Math.abs(dy)?(dx>0?"right":"left"):(dy>0?"down":"up"));
+ },{passive:true});
+ 
+ // Start button handler
+ const startButton=document.getElementById("startButton");
+ if(startButton){
+   startButton.addEventListener("click", ()=>{
+     document.getElementById("startOverlay").style.display="none";
+     canMove=true;
+     log("ゲーム開始！矢印ボタンでタイルを動かしてね❤");
+   });
+ }
+ 
+ // Initial game setup
+ board=emptyBoard();addRandom();addRandom();spawnEnemy();render();
+}
 
-// initial boot
-board=emptyBoard();addRandom();addRandom();spawnEnemy();render();
-document.getElementById("startButton").addEventListener("click",()=>{
-  document.getElementById("startOverlay").style.display="none";
-  canMove=true;
-  log("ゲーム開始！矢印ボタンでタイルを動かしてね❤");
-});
+// Start everything when DOM is ready
+if(document.readyState==='loading'){
+ document.addEventListener('DOMContentLoaded', initGame);
+} else {
+ initGame();
+}
 </script>
 </body>
 </html>
