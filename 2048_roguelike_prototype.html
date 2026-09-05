@@ -118,6 +118,7 @@ let board=[], maxPlayerHp=30, playerHp=30, floor=1, score=0, enemy=null;
 let bonusDamage=0, shield=0, heal=0, comboBonus=0;
 let baseAttack=0; // 基礎攻撃力
 let canMove=false, touchStart=null;
+let pendingTimeout=null;
 
 const enemyTypes=[
  {name:"スライム",hp:20,atk:3},
@@ -156,16 +157,20 @@ function render(){
  document.getElementById("playerHp").textContent=playerHp;
  document.getElementById("floor").textContent=floor;
  document.getElementById("score").textContent=score;
- document.getElementById("enemyName").textContent=enemy.name;
- document.getElementById("enemyHpText").textContent=`${Math.max(0,enemy.hp)} / ${enemy.maxHp}`;
- document.getElementById("enemyHpText2").textContent=`${Math.max(0,enemy.hp)} / ${enemy.maxHp}`;
- document.getElementById("enemyHp").style.width=Math.max(0,enemy.hp/enemy.maxHp*100)+"%";
+ if(enemy){
+   document.getElementById("enemyName").textContent=enemy.name;
+   document.getElementById("enemyHpText").textContent=`${Math.max(0,enemy.hp)} / ${enemy.maxHp}`;
+   document.getElementById("enemyHpText2").textContent=`${Math.max(0,enemy.hp)} / ${enemy.maxHp}`;
+   document.getElementById("enemyHp").style.width=Math.max(0,enemy.hp/enemy.maxHp*100)+"%";
+ }
  // player hp bar
  document.getElementById('playerHpFill').style.width=Math.max(0,playerHp/maxPlayerHp*100)+"%";
  document.getElementById('playerHpText').textContent = `${Math.max(0,playerHp)} / ${maxPlayerHp}`;
 }
 
 function log(s){document.getElementById("log").textContent=s}
+
+function clearPendingTimeout(){ if(pendingTimeout){ clearTimeout(pendingTimeout); pendingTimeout=null; } }
 
 function showDamage(text,color,target='center'){
  const el=document.createElement('div');
@@ -240,24 +245,31 @@ function move(dir){
    render();
    // if enemy died, show win sequence after short delay so player sees damage popup
    if(enemy.hp<=0){
-     setTimeout(()=>{ winBattle(); }, 450);
+     // ensure enemy hp doesn't go negative
+     enemy.hp=0;
+     clearPendingTimeout();
+     pendingTimeout = setTimeout(()=>{ winBattle(); pendingTimeout=null; }, 450);
      return;
    }
    // otherwise enemy retaliates after a short delay (let damage popup show)
-   setTimeout(()=>{
+   clearPendingTimeout();
+   pendingTimeout = setTimeout(()=>{
      enemyAttack();
      render();
      if(isGameOver()) { gameOver(); return; }
      unlockInput();
+     pendingTimeout=null;
    }, 450);
  } else {
    // no combination: immediate move, then enemy attacks after small delay
    render();
-   setTimeout(()=>{
+   clearPendingTimeout();
+   pendingTimeout = setTimeout(()=>{
      enemyAttack();
      render();
      if(isGameOver()) { gameOver(); return; }
      unlockInput();
+     pendingTimeout=null;
    }, 200);
  }
 }
@@ -283,15 +295,14 @@ function winBattle(){
  // full heal on floor clear
  playerHp = maxPlayerHp;
  if(heal)playerHp=Math.min(maxPlayerHp,playerHp+heal);
- spawnEnemy();
+ // DO NOT spawn new enemy until upgrade selection completed
+ // keep current enemy visual (hp 0) so player sees defeat
  canMove=false;
- // ensure the upgrade overlay is shown after UI updates; use RAF then display
+ clearPendingTimeout();
  render();
+ // ensure the upgrade overlay is shown after UI updates; use RAF then display
  requestAnimationFrame(()=>{
-   // small timeout to ensure DOM updated and any animations finished
-   setTimeout(()=>{
-     showUpgrade();
-   },60);
+   pendingTimeout = setTimeout(()=>{ showUpgrade(); pendingTimeout=null; },60);
  });
 }
 
@@ -305,6 +316,10 @@ const upgrades=[
 ];
 function showUpgrade(){
  const box=document.getElementById("choices");box.innerHTML="";
+ // ensure overlay is topmost
+ const upOverlay = document.getElementById('upgradeOverlay');
+ upOverlay.style.zIndex = 999;
+ // present picks
  const picks=[...upgrades].sort(()=>Math.random()-.5).slice(0,3);
  picks.forEach(([n,d,id])=>{
    const b=document.createElement("button");b.className="choice";
@@ -317,15 +332,18 @@ function showUpgrade(){
      if(id==="combo")comboBonus++;
      if(id==="maxhp"){ maxPlayerHp+=5; playerHp = Math.min(maxPlayerHp, playerHp+5); }
      if(id==="base"){ baseAttack+=1; }
-     document.getElementById("upgradeOverlay").style.display="none";
-     unlockInput();
+     // hide overlay, spawn next enemy and allow input
+     upOverlay.style.display = 'none';
+     // spawn next enemy for the new floor
+     spawnEnemy();
      render();
+     unlockInput();
      log(`${n}を獲得！❤`);
    };
    box.appendChild(b);
  });
  // show overlay and lock input
- document.getElementById("upgradeOverlay").style.display="flex";
+ upOverlay.style.display="flex";
  canMove=false;
 }
 
