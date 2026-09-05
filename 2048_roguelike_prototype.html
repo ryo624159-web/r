@@ -243,12 +243,14 @@ function move(dir){
    // visual: show damage over enemy first
    showDamage(`${damage}`, '#ffd966', 'enemy');
    render();
-   // if enemy died, show win sequence after short delay so player sees damage popup
+   // if enemy died, show win sequence
    if(enemy.hp<=0){
-     // ensure enemy hp doesn't go negative
      enemy.hp=0;
      clearPendingTimeout();
-     pendingTimeout = setTimeout(()=>{ winBattle(); pendingTimeout=null; }, 450);
+     // showUpgrade synchronously on next frame so UI doesn't lock without overlay
+     requestAnimationFrame(()=>{
+       winBattle();
+     });
      return;
    }
    // otherwise enemy retaliates after a short delay (let damage popup show)
@@ -295,15 +297,12 @@ function winBattle(){
  // full heal on floor clear
  playerHp = maxPlayerHp;
  if(heal)playerHp=Math.min(maxPlayerHp,playerHp+heal);
- // DO NOT spawn new enemy until upgrade selection completed
  // keep current enemy visual (hp 0) so player sees defeat
  canMove=false;
  clearPendingTimeout();
  render();
- // ensure the upgrade overlay is shown after UI updates; use RAF then display
- requestAnimationFrame(()=>{
-   pendingTimeout = setTimeout(()=>{ showUpgrade(); pendingTimeout=null; },60);
- });
+ // Show upgrade overlay immediately (no pending timeout) to avoid timing issues
+ showUpgrade();
 }
 
 const upgrades=[
