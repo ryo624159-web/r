@@ -97,8 +97,8 @@ h1{text-align:center;margin:0 0 10px;font-size:30px}
 .mult{color:#ffbf3f}
 .comboFill{height:100%;width:0;background:#ff8a2d;transition:width .05s}
 .boardShell{position:relative}
-.damageStage{position:absolute;inset:0;width:100%;display:flex;justify-content:center;align-items:center;pointer-events:none;z-index:5;overflow:visible}
-.playerDamageStage{height:58px;width:100%;position:relative;display:flex;justify-content:center;align-items:center;pointer-events:none;overflow:visible}
+.damageStage{position:absolute;inset:0;width:100%;display:flex;justify-content:center;align-items:center;pointer-events:none;z-index:5;overflow:hidden}
+.playerDamageStage{height:58px;width:100%;position:relative;display:flex;justify-content:center;align-items:center;pointer-events:none;overflow:hidden}
 .board{background:#8d8174;padding:8px;border-radius:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;touch-action:none;user-select:none}
 .tile{aspect-ratio:1;border-radius:10px;background:#b8aea2;display:flex;align-items:center;justify-content:center;font-size:clamp(25px,8vw,42px);font-weight:950;color:#333}
 .t2{background:#eee4da}.t4{background:#ede0c8}.t8{background:#f2b179;color:white}.t16{background:#f59563;color:white}.t32{background:#f67c5f;color:white}.t64{background:#f65e3b;color:white}.t128{background:#f0a202;color:#fff;font-size:clamp(19px,6vw,32px)}.t256{background:#e76f51;color:#fff;font-size:clamp(17px,5.5vw,29px)}.t512{background:#2a9d8f;color:#fff;font-size:clamp(16px,5vw,27px)}.t1024{background:#457b9d;color:#fff;font-size:clamp(15px,4.7vw,25px)}.t2048{background:#7b2cbf;color:#fff;font-size:clamp(14px,4.4vw,24px)}.t4096{background:#4361ee;color:#fff;font-size:clamp(14px,4.4vw,24px)}
@@ -151,13 +151,13 @@ h1{text-align:center;margin:0 0 10px;font-size:30px}
 .choice.blueChoice{border-left:5px solid #4d8cff}.choice.greenChoice{border-left:5px solid #43c96b}.choice.goldChoice{border-left:5px solid #e2b63d}
 .primary{width:100%;padding:12px;border:0;border-radius:11px;background:#e7a735;color:#15191e;font-weight:900;margin-top:10px}
 .comboBar.comboBarShake{animation:comboBarShake .22s ease-out}
-.dmg{position:absolute;left:50%;top:50%;z-index:2;font-size:38px;font-weight:1000;background:#1b263b;color:#fff;padding:4px 14px;border-radius:18px;border:3px solid #ffd23f;animation:pop .55s ease-out forwards;box-shadow:0 4px 18px #000b,0 0 10px #ffd23f88;white-space:nowrap;width:max-content;max-width:none;contain:layout paint}
+.dmg{position:absolute;left:50%;top:50%;z-index:2;font-size:38px;font-weight:1000;background:#1b263b;color:#fff;padding:4px 14px;border-radius:18px;border:3px solid #ffd23f;animation:pop .55s ease-out forwards;box-shadow:0 4px 18px #000b,0 0 10px #ffd23f88;white-space:nowrap;width:max-content;max-width:calc(100% - 12px);contain:layout paint}
 .pdmg{background:#e84545;border-color:#ff9a9a}
 @keyframes comboBarShake{20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
-@keyframes pop{0%{opacity:0;transform:scale(.5) translateY(12px)}20%{opacity:1;transform:scale(1.1)}100%{opacity:0;transform:scale(.95) translateY(-20px)}}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.5) translateY(12px)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-50%) scale(.95) translateY(-20px)}}
 .wrap.shake{animation:shake .22s ease-out}
 @keyframes shake{20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
-.dmg{font-size:48px;min-width:110px;text-align:center;padding:7px 18px;text-shadow:0 2px 4px #000;box-shadow:0 4px 18px #0008}
+.dmg{font-size:48px;min-width:110px;text-align:center;padding:7px 18px;text-shadow:0 2px 4px #000;box-shadow:0 4px 18px #0008;transform:translate(-50%,-50%)}
 .enemyDefeatFlash{animation:enemyDefeatFlash .34s ease-out}.enemyDefeatFlash .hp{animation:hpExplode .34s ease-out}
 @keyframes enemyDefeatFlash{0%{filter:brightness(1)}35%{filter:brightness(1.8)}70%{filter:brightness(1.25)}100%{filter:brightness(1)}}
 @keyframes hpExplode{0%{filter:brightness(1);box-shadow:none}35%{filter:brightness(2.5);box-shadow:0 0 18px 7px #ffb000}100%{filter:brightness(1);box-shadow:0 0 0 0 transparent}}
@@ -506,9 +506,14 @@ function spawnEnemy(){
   if(skills.backwater)playerHp=Math.max(0,maxHp/2);
 
   for(let f=2;f<=floor;f++){
-    if(f%10===1)atk=Math.round(atk*1.5);
-    if(f%50===0)atk*=f/5;
-    else atk+=1
+    if(f<=100){
+      if(f%10===1)atk=Math.round(atk*1.5);
+      if(f%50===0)atk*=f/5;
+      else atk+=1
+    }else{
+      atk*=1.2;
+      if(f%10===0)atk*=1.7;
+    }
   }
 
   enemy={name:t.name,hp,maxHp:hp,atk,type:t.type,desc:t.desc};
