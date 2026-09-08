@@ -177,10 +177,11 @@ function spawnTileAt(i){
 }
 
 function addRandom(){
-  let n=skills.chaos?2:1;
+  let chaos=!!skills.chaos;
+  let n=chaos?2:1;
   for(let z=0;z<n;z++){
     spawnCount++;
-    if(skills.extraction&&spawnCount%2===0)continue;
+    if(!chaos&&skills.extraction&&spawnCount%2===0)continue;
     let e=board.map((v,i)=>v?-1:i).filter(i=>i>=0);
     if(!e.length)continue;
     let i=e[Math.floor(Math.random()*e.length)];
@@ -233,11 +234,10 @@ function processEmperor(){
   if(!skills.emperor)return 0;
   let vals=board.filter(Boolean),mx=vals.length?Math.max(...vals):0;
   if(mx>previousMax){
-    let delta=mx-previousMax;
-    baseAttack+=delta;
-    emperorBonus+=delta;
+    baseAttack+=mx;
+    emperorBonus+=mx;
     previousMax=mx;
-    return delta
+    return mx
   }
   return 0
 }
