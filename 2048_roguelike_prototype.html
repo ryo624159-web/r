@@ -114,6 +114,20 @@ h1{text-align:center;margin:0 0 10px;font-size:30px}
 .t4194304{background:#ef476f;color:#fff;font-size:clamp(13px,4.1vw,24px)}
 .t8388608{background:#073b4c;color:#fff;font-size:clamp(13px,4.1vw,22px)}
 .t16777216{background:#7209b7;color:#fff;font-size:clamp(13px,4.1vw,22px)}
+
+.tile.tileFxUp{animation:tileFxUp .22s ease-out;}
+.tile.tileFxDown{animation:tileFxDown .22s ease-out;}
+.tile.tileFxRemove{animation:tileFxRemove .22s ease-out;}
+.tileFxHunter::after,.tileFxMage::after,.tileFxLust::after,.tileFxDevil::after{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-weight:950;font-size:clamp(18px,5vw,30px);opacity:0;animation:tileFxMark .38s ease-out forwards;}
+.tileFxHunter::after{content:'⌁';color:#ffb84d;text-shadow:0 0 10px #ffb84d;}
+.tileFxMage::after{content:'✦';color:#72b7ff;text-shadow:0 0 10px #72b7ff;}
+.tileFxLust::after{content:'♥';color:#ff6fae;text-shadow:0 0 10px #ff6fae;}
+.tileFxDevil::after{content:'◆';color:#9b59ff;text-shadow:0 0 10px #9b59ff;}
+@keyframes tileFxUp{0%{transform:scale(.88);filter:brightness(1);}55%{transform:scale(1.08);filter:brightness(1.3);}100%{transform:scale(1);filter:brightness(1);}}
+@keyframes tileFxDown{0%{transform:scale(1.06);filter:brightness(1.15);}100%{transform:scale(1);filter:brightness(1);}}
+@keyframes tileFxRemove{0%{transform:scale(1);opacity:1;}100%{transform:scale(.55);opacity:.15;filter:brightness(.7);}}
+@keyframes tileFxMark{0%{transform:scale(.55);opacity:0;}30%{transform:scale(1.15);opacity:.95;}100%{transform:scale(1.35);opacity:0;}}
+
 .mageTarget{box-shadow:inset 0 0 0 4px #72b7ff,0 0 12px #72b7ff;animation:mageGlow .8s ease-in-out infinite alternate}
 .hunterTarget{box-shadow:inset 0 0 0 4px #ffb84d,0 0 12px #ffb84d;animation:hunterGlow .8s ease-in-out infinite alternate}.hunterTarget{position:relative}.hunterTimer{position:absolute;top:5px;left:50%;transform:translateX(-50%);z-index:3;font-size:20px;line-height:1;padding:2px 6px;border-radius:8px;background:#111d;color:#fff;font-weight:900;letter-spacing:.2px;text-shadow:0 1px 2px #000;pointer-events:none;white-space:nowrap}
 @keyframes mageGlow{from{filter:brightness(1)}to{filter:brightness(1.45)}}
@@ -182,7 +196,7 @@ box-shadow:0 2px 6px rgba(0,0,0,.12)
 'use strict';
 
 const S=4;
-let board=[],playerHp=40,maxHp=40,floor=1,score=0,enemy=null,baseAttack=5,combo=0,heroBonus=0,greedMultiplier=1,embryoTimeBonus=0,deadline=0,timerId=null,canMove=false,touch=null,previousMax=0,minSpawnValue=0,audioCtx=null,enemyTurn=0,enemyCharge=false,mageTarget=-1,hunterTarget=-1,hunterTargetValue=0,emperorBonus=0,freezeStarted=0,spawnCount=0,paused=false,greedRecord=0,turnNewTiles=[],greedUroborosUsed=false;
+let board=[],playerHp=40,maxHp=40,floor=1,score=0,enemy=null,baseAttack=5,combo=0,heroBonus=0,greedMultiplier=1,embryoTimeBonus=0,deadline=0,timerId=null,canMove=false,touch=null,previousMax=0,minSpawnValue=0,audioCtx=null,enemyTurn=0,enemyCharge=false,mageTarget=-1,hunterTarget=-1,hunterTargetValue=0,emperorBonus=0,freezeStarted=0,spawnCount=0,paused=false,greedRecord=0,turnNewTiles=[],greedUroborosUsed=false,pendingTileEffects=[];
 
 let skills={regen:0,maxHp:0,comboTime:0,baseUp:0,comboUp:0,sacrifice:false,magician:false,ouroboros:false,mushroom:false,devil:false,chaos:false,weakling:false,berserker:false,chainCannon:false,overreaction:false,multiplication:false,dependence:false,embryo:false,blessing:false,backwater:false,emperor:false,grudge:false,hunger:false,mummy:false,greed:false,lust:false,accumulation:0,alchemist:0,reversal:0,gluttony:0,reaper:0,gambler:0,bomb:0};
 
@@ -518,12 +532,39 @@ function fmt(n){
 
 function fmtDamage(n){return Math.max(0,Math.round(n)).toLocaleString('en-US')}
 
+function queueTileEffect(indices,type){
+  indices.filter(i=>i>=0&&i<board.length).forEach(i=>pendingTileEffects.push({i,type}));
+}
+
+function queueBoardDiff(before,after){
+  for(let i=0;i<16;i++){
+    let b=before[i]||0,a=after[i]||0;
+    if(b===a)continue;
+    if(b===0&&a>0)queueTileEffect([i],'up');
+    else if(b>0&&a===0)queueTileEffect([i],'remove');
+    else if(a>b)queueTileEffect([i],'up');
+    else if(a<b)queueTileEffect([i],'down');
+  }
+}
+
 function render(){
   let b=$('board');
   b.innerHTML='';
+  let effects=pendingTileEffects.splice(0);
   board.forEach((v,i)=>{
     let d=document.createElement('div');
+    let fx=effects.filter(e=>e.i===i);
     d.className='tile '+(v?'t'+v:'')+(i===mageTarget?' mageTarget':'')+(i===hunterTarget?' hunterTarget':'');
+    if(fx.length){
+      let types=[...new Set(fx.map(e=>e.type))];
+      if(types.includes('up'))d.classList.add('tileFxUp');
+      if(types.includes('down'))d.classList.add('tileFxDown');
+      if(types.includes('remove'))d.classList.add('tileFxRemove');
+      if(types.includes('hunter'))d.classList.add('tileFxHunter');
+      if(types.includes('mage'))d.classList.add('tileFxMage');
+      if(types.includes('lust'))d.classList.add('tileFxLust');
+      if(types.includes('devil'))d.classList.add('tileFxDevil');
+    }
     d.textContent=v?fmt(v):'';
     if(i===hunterTarget&&hunterTarget>=0){
       let turns=Math.max(1,6-(enemyTurn%6));
@@ -817,6 +858,7 @@ function move(dir){
       let next=Math.floor(board[i]/2);
       if(next>=2&&next>minSpawnValue){
         board[i]=next;
+        queueTileEffect([i],'down'); queueTileEffect([i],'mage');
         setLog('魔術師が指定したマスを半分にした！','The Mage halved the selected tile!')
       }else{
         setLog('魔術師の攻撃は無効になった！','The Mage’s attack was nullified!')
@@ -927,6 +969,7 @@ function move(dir){
 }
 
 function enemyAttack(){
+  let beforeEnemyAttack=board.slice();
   enemyTurn++;
   let action='';
 
@@ -982,6 +1025,7 @@ function enemyAttack(){
       let mx=board[i],next=Math.floor(mx/4);
       if(next>=2&&next>minSpawnValue){
         board[i]=next;
+        queueTileEffect([i],'down'); queueTileEffect([i],'hunter');
         action=currentLang==='en'?`The Hunter quartered the maximum tile (${mx})!`:`ハンターが最大値 ${mx} を4分の1にした！`
       }else{
         action=currentLang==='en'?'The Hunter’s attack was nullified!':'ハンターの攻撃は無効になった！'
@@ -1017,6 +1061,8 @@ function enemyAttack(){
       setLog(`生贄！ ${fmt(m)}を犠牲に復活！`,`Sacrifice! Revived by sacrificing ${fmt(m)}.`)
     }
   }
+
+  queueBoardDiff(beforeEnemyAttack,board);
 
   if(playerHp<=0){
     gameOver();
@@ -1166,7 +1212,9 @@ function apply(id){
   }
 
   if(id==='devil'){
+    let changed=board.map((x,i)=>x?i:-1).filter(i=>i>=0);
     board=board.map(x=>x?x*2:0);
+    queueTileEffect(changed,'up'); queueTileEffect(changed,'devil');
     let levelSkills=defs.filter(x=>x[3]==='level'&&level(x[2])>0);
 
     if(levelSkills.length){
@@ -1187,17 +1235,19 @@ function apply(id){
   }
 
   if(id==='lust'){
-    let ids=board.map((x,i)=>x?i:-1).filter(i=>i>=0);
+    let ids=board.map((x,i)=>x?i:-1).filter(i=>i>=0),doubled=[];
 
     for(let z=0;z<Math.min(3,ids.length);z++){
       let k=Math.floor(Math.random()*ids.length),i=ids.splice(k,1)[0];
-      board[i]*=2
+      board[i]*=2; doubled.push(i)
     }
+    queueTileEffect(doubled,'up'); queueTileEffect(doubled,'lust');
 
     let all=board.map((x,i)=>x?i:-1).filter(i=>i>=0);
     if(all.length){
       let i=all[Math.floor(Math.random()*all.length)];
-      board[i]=0
+      board[i]=0;
+      queueTileEffect([i],'remove'); queueTileEffect([i],'lust');
     }
   }
 
@@ -1280,6 +1330,7 @@ function apply(id){
   }
 
   recordRaised(beforeApply);
+  queueBoardDiff(beforeApply,board);
   processEmperor();
 
   if(id!=='greed')triggerGreed();
