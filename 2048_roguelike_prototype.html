@@ -115,10 +115,10 @@ h1{text-align:center;margin:0 0 10px;font-size:30px}
 .t8388608{background:#073b4c;color:#fff;font-size:clamp(13px,4.1vw,22px)}
 .t16777216{background:#7209b7;color:#fff;font-size:clamp(13px,4.1vw,22px)}
 
-.tile.tileFxUp{animation:tileFxUp .22s ease-out;}
-.tile.tileFxDown{animation:tileFxDown .22s ease-out;}
+.tile.tileFxUp{animation:tileFxUp .44s ease-out;}
+.tile.tileFxDown{animation:tileFxDown .44s ease-out;}
 .tile.tileFxRemove{animation:tileFxRemove .22s ease-out;}
-.tileFxHunter::after,.tileFxMage::after,.tileFxLust::after,.tileFxDevil::after{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-weight:950;font-size:clamp(18px,5vw,30px);opacity:0;animation:tileFxMark .38s ease-out forwards;}
+.tileFxHunter::after,.tileFxMage::after,.tileFxLust::after,.tileFxDevil::after{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;font-weight:950;font-size:clamp(18px,5vw,30px);opacity:0;animation:tileFxMark .76s ease-out forwards;}
 .tileFxHunter::after{content:'⌁';color:#ffb84d;text-shadow:0 0 10px #ffb84d;}
 .tileFxMage::after{content:'✦';color:#72b7ff;text-shadow:0 0 10px #72b7ff;}
 .tileFxLust::after{content:'♥';color:#ff6fae;text-shadow:0 0 10px #ff6fae;}
@@ -541,7 +541,6 @@ function queueBoardDiff(before,after){
     let b=before[i]||0,a=after[i]||0;
     if(b===a)continue;
     if(b===0&&a>0)queueTileEffect([i],'up');
-    else if(b>0&&a===0)queueTileEffect([i],'remove');
     else if(a>b)queueTileEffect([i],'up');
     else if(a<b)queueTileEffect([i],'down');
   }
@@ -559,7 +558,6 @@ function render(){
       let types=[...new Set(fx.map(e=>e.type))];
       if(types.includes('up'))d.classList.add('tileFxUp');
       if(types.includes('down'))d.classList.add('tileFxDown');
-      if(types.includes('remove'))d.classList.add('tileFxRemove');
       if(types.includes('hunter'))d.classList.add('tileFxHunter');
       if(types.includes('mage'))d.classList.add('tileFxMage');
       if(types.includes('lust'))d.classList.add('tileFxLust');
@@ -1247,7 +1245,6 @@ function apply(id){
     if(all.length){
       let i=all[Math.floor(Math.random()*all.length)];
       board[i]=0;
-      queueTileEffect([i],'remove'); queueTileEffect([i],'lust');
     }
   }
 
