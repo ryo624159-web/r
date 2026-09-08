@@ -400,18 +400,21 @@ function addRandom(){
   }
 }
 
+function canMerge(){
+  for(let r=0;r<4;r++)for(let c=0;c<4;c++){
+    let i=r*4+c;
+    if(!board[i])continue;
+    if(c<3&&board[i]===board[i+1])return true;
+    if(r<3&&board[i]===board[i+4])return true
+  }
+  return false
+}
+
 function addMummyMergeTile(){
   let e=board.map((v,i)=>v?-1:i).filter(i=>i>=0);
   if(!e.length)return false;
-  let normal=[2,2,2,2,2,2,2,2,2,4].filter(x=>x>minSpawnValue);
-  if(!normal.length)return false;
-  let v=normal[Math.floor(Math.random()*normal.length)];
-  if(skills.extraction)v*=4;
-  if(v<=minSpawnValue)return false;
   let i=e[Math.floor(Math.random()*e.length)];
-  board[i]=v;
-  turnNewTiles.push({i,v,mummy:true});
-  return true
+  return spawnTileAt(i)
 }
 
 function spawnMummyMinTile(){
@@ -923,7 +926,7 @@ function move(dir){
     addRandom()
   }else if(g.length){
     for(let z=0;z<g.length;z++)addMummyMergeTile()
-  }else{
+  }else if(!canMerge()){
     spawnMummyMinTile()
   }
 
