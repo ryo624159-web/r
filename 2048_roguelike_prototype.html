@@ -1010,7 +1010,7 @@ function enemyAttack(){
 
   if(playerHp<=0&&skills.sacrifice){
     let v=board.filter(Boolean);
-    if(v.length>=2){
+    if(v.length>=3){
       let m=Math.max(...v),i=board.indexOf(m);
       board[i]=0;
       playerHp=Math.min(maxHp,m);
