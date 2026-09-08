@@ -214,7 +214,7 @@ let board=[],playerHp=40,maxHp=40,floor=1,score=0,enemy=null,baseAttack=5,combo=
 
 let skills={regen:0,maxHp:0,comboTime:0,baseUp:0,comboUp:0,sacrifice:false,magician:false,ouroboros:false,mushroom:false,devil:false,chaos:false,weakling:false,berserker:false,chainCannon:false,overreaction:false,multiplication:false,dependence:false,embryo:false,blessing:false,backwater:false,emperor:false,grudge:false,hunger:false,mummy:false,greed:false,lust:false,accumulation:0,alchemist:0,reversal:0,gluttony:0,reaper:0,gambler:0,bomb:0,anger:0};
 
-let levelMaxHpFactor=1,levelBaseUpFactor=1,frozenRemaining=0;
+let levelMaxHpFactor=1,levelBaseUpFactor=1,frozenRemaining=0,angerComboMode=false;
 let currentLang='ja';
 
 const LANG={
@@ -1439,7 +1439,7 @@ function apply(id){
     skills.greed=false;
     greedMultiplier=1;
     greedRecord=0;
-    greedUroborosUsed=false;
+    // ウロボロスの使用状態は憤怒ではリセットしない。
   }
 
   recordRaised(beforeApply);
