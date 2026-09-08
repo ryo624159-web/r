@@ -72,6 +72,20 @@
   100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--angle)) translateX(var(--distance)) scale(.2)}
 }
 
+
+.gamblerFlash{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .08s ease-out;
+}
+.gamblerFlash.show{opacity:1}
+.gamblerFlashWhite{background:rgba(255,255,255,.78)}
+.gamblerFlashGold{
+  background:radial-gradient(circle,rgba(255,245,150,.9) 0%,rgba(255,215,50,.68) 38%,rgba(255,180,0,.32) 72%,rgba(255,170,0,0) 100%);
+}
 </style>
 <title>2048 ROGUELIKE - Skills</title>
 <style>
@@ -221,7 +235,7 @@ const LANG={
     'ミイラ':['Mummy','Deal 2× damage. Tiles are generated only when a merge occurs. If no merge is possible, generate a tile with the minimum value on the board.'],
     '強欲':['Greed','When acquired, destroy tiles exceeding the maximum tile value at the time of acquisition and multiply the Combo multiplier by 1.1.'],
     '蓄積':['Accumulation','Increase Base Attack by 1% on turns when you do not attack.'],
-    'ギャンブラー':['Gambler','Damage dealt is either doubled or halved. The higher the Combo, the greater the chance of doubling.'],
+    'ギャンブラー':['Gambler','Multiply damage dealt by a random value from 0.1× to 3×. Higher Combo makes larger multipliers more likely.'],
     '色眼鏡':['Colored Glasses','Damage taken from enemies is always half of Max HP, rounded up.'],
     '色欲':['Lust','Double 3 randomly selected tiles, then randomly remove 1 tile from the board.'],
     '抽出':['Extraction','Normal tile generation occurs only once every 2 turns, but generated tile values are multiplied by 4. Greed’s threshold value is also multiplied by 4.'],
@@ -339,7 +353,7 @@ const defs=[
 ['ミイラ','与えるダメージ2倍。合体したときにしかタイルが生成されなくなる。合体できないターンは盤面の最小タイルを生成。','mummy','card'],
 ['強欲','習得時の最大タイルを超えたタイルを消し、コンボ倍率を1.1倍する。','greed','card'],
 ['蓄積','攻撃しなかったターン、基礎攻撃力1%上昇。','accumulation','card'],
-['ギャンブラー','与えるダメージが倍か半分になる。高コンボほど2倍の確率が増える','gambler','card'],
+['ギャンブラー','与えるダメージを0.1倍から3倍にする。コンボが多いほど高い倍率が出やすくなる','gambler','card'],
 ['色眼鏡','敵から受けるダメージを常に最大HPの二分の一にする（切り上げ）。','colored','card'],
 ['色欲','ランダムなタイルを3つ選んで2倍にし、その後、盤面のタイルからランダムに1つ消す。','lust','repeat'],
 ['抽出','通常のタイル生成は2回に1回になるが、出るタイルの値が4倍になる。強欲の基準値も4倍。','extraction','card'],
@@ -772,6 +786,36 @@ function playComboSound(c){
 }
 
 function playHitSound(){ensureAudio();tone(150,.08,'sawtooth',.04);setTimeout(()=>tone(90,.12,'square',.025),35)}
+
+function playGamblerBadSound(level){
+  let a=ensureAudio();
+  if(!a)return;
+  if(level===0.1){
+    tone(180,.11,'sawtooth',.035);
+    setTimeout(()=>tone(105,.18,'square',.03),75);
+  }else{
+    tone(310,.10,'triangle',.028);
+    setTimeout(()=>tone(220,.15,'sine',.025),70);
+  }
+}
+
+function playGamblerJackpotSound(){
+  let a=ensureAudio();
+  if(!a)return;
+  const seq=[523,659,784,1047,1319];
+  seq.forEach((f,i)=>setTimeout(()=>tone(f,.12,i===4?'sine':'triangle',.035),i*60));
+  setTimeout(()=>tone(1568,.22,'sine',.045),300);
+}
+
+function gamblerFlash(kind){
+  let el=document.createElement('div');
+  el.className='gamblerFlash '+(kind==='gold'?'gamblerFlashGold':'gamblerFlashWhite');
+  document.body.appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('show'));
+  setTimeout(()=>el.classList.remove('show'),170);
+  setTimeout(()=>el.remove(),360);
+}
+
 function playEnemyDefeatSound(){
   let a=ensureAudio();
   if(!a)return;
@@ -905,11 +949,34 @@ function move(dir){
     if(skills.berserker&&playerHp<=maxHp*.75)damage*=2;
     if(skills.backwater)damage*=maxHp/Math.max(1,playerHp)/2;
 
+    let gamblerMultiplier=1;
     if(skills.gambler){
-      let p=Math.min(.95,.5+Math.max(0,combo-1)*.05);
-      damage*=Math.random()<p?2:.5
+      // Five fixed multipliers. The distribution shifts from low to high as Combo rises.
+      const gamblerPoints=[
+        [0,  [45,30,15, 8, 2]],
+        [5,  [38,27,15,14, 6]],
+        [10, [25,20,10,25,20]],
+        [15, [15,15, 8,27,35]],
+        [20, [ 8,10, 6,26,50]],
+        [25, [ 3, 7, 5,23,62]],
+        [30, [ 1, 4, 5,20,70]]
+      ];
+      const c=Math.min(30,Math.max(0,combo));
+      let lo=gamblerPoints[0],hi=gamblerPoints[gamblerPoints.length-1];
+      for(let i=0;i<gamblerPoints.length-1;i++){
+        if(c>=gamblerPoints[i][0]&&c<=gamblerPoints[i+1][0]){lo=gamblerPoints[i];hi=gamblerPoints[i+1];break}
+      }
+      const span=hi[0]-lo[0], t=span?(c-lo[0])/span:0;
+      const weights=lo[1].map((v,i)=>v+(hi[1][i]-v)*t);
+      const roll=Math.random()*100;
+      let acc=0;
+      const values=[.1,.5,1,2,3];
+      for(let i=0;i<values.length;i++){
+        acc+=weights[i];
+        if(roll<acc){gamblerMultiplier=values[i];break}
+      }
+      damage*=gamblerMultiplier;
     }
-
     damage=Math.max(0,Math.round(damage));
 
     let attacks=g.length+(skills.chainCannon&&g.length>=3?1:0)+(skills.chainCannon&&g.length>=5?1:0);
@@ -921,6 +988,23 @@ function move(dir){
     }
 
     bubble(damage);
+    if(skills.gambler){
+      if(gamblerMultiplier===0.1){
+        playGamblerBadSound(0.1);
+      }else if(gamblerMultiplier===0.5){
+        playGamblerBadSound(0.5);
+      }else{
+        playComboSound(combo);
+        if(gamblerMultiplier===2){
+          gamblerFlash('white');
+        }else if(gamblerMultiplier===3){
+          gamblerFlash('gold');
+          playGamblerJackpotSound();
+        }
+      }
+    }else{
+      playComboSound(combo);
+    }
     playHitSound();
     triggerGreed();
     setLog(`合体攻撃！ ${fmtDamage(damage)}ダメージ ×${attacks}回 / ${combo}コンボ`,`Merge attack! ${fmtDamage(damage)} damage ×${attacks} attacks / ${combo} Combo`)
