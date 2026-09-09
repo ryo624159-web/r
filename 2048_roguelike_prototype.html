@@ -375,9 +375,15 @@ function empty(){return Array(16).fill(0)}
 function spawnCandidates(){
   let a=[...new Set(board.filter(Boolean))].filter(x=>x>minSpawnValue);
   if(skills.chaos&&a.length)return a;
-  let normal=[2,2,2,2,2,2,2,2,2,4].filter(x=>x>minSpawnValue);
+  let normalBase=[2,2,2,2,2,2,2,2,2,4];
+  // 通常生成で実際に出現し得る値を、通常生成の基準値そのものから判定する。
+  // 抽出中は実際の生成値が4倍になるため、その倍率もここで反映する。
+  let ordinaryGeneratedValues=new Set(normalBase.map(x=>skills.extraction?x*4:x));
+  let greedBase=greedRecord, greedHalf=greedBase/2;
+  let blockOuroboros=skills.greed&&greedBase>0&&ordinaryGeneratedValues.has(greedBase)&&ordinaryGeneratedValues.has(greedHalf);
+  let normal=normalBase.filter(x=>x>minSpawnValue);
   if(normal.length)return normal;
-  if(skills.ouroboros&&minSpawnValue>0)return [minSpawnValue*2];
+  if(skills.ouroboros&&minSpawnValue>0&&!blockOuroboros)return [minSpawnValue*2];
   return normal
 }
 
@@ -484,21 +490,7 @@ function triggerGreed(){
   }
   if(removed){
     greedMultiplier*=Math.pow(1.1,removed);
-    let uro=false;
-    if(skills.ouroboros&&!greedUroborosUsed){
-      let direct=Math.floor((removedValues[0]||0)/8);
-      if(direct>minSpawnValue){
-        let e=board.map((v,i)=>v?-1:i).filter(i=>i>=0);
-        if(e.length){
-          let i=e[Math.floor(Math.random()*e.length)];
-          board[i]=direct;
-          turnNewTiles.push({i,v:direct,greedSafe:true});
-          uro=true;
-          greedUroborosUsed=true
-        }
-      }
-    }
-    setLog(`強欲！基準値${fmt(greedRecord)}を超えた増加タイルを${removed}個消去、コンボ倍率×${Math.pow(1.1,removed).toFixed(2)}${uro?'、ウロボロスで1/8を出現！':''}`,`Greed! Removed ${removed} boosted tile${removed===1?'':'s'} above threshold ${fmt(greedRecord)}. Combo ×${Math.pow(1.1,removed).toFixed(2)}${uro?' Ouroboros spawned 1/8!':''}`);
+    setLog(`強欲！基準値${fmt(greedRecord)}を超えた増加タイルを${removed}個消去、コンボ倍率×${Math.pow(1.1,removed).toFixed(2)}`,`Greed! Removed ${removed} boosted tile${removed===1?'':'s'} above threshold ${fmt(greedRecord)}. Combo ×${Math.pow(1.1,removed).toFixed(2)}`);
     render()
   }
   return removed
@@ -1428,10 +1420,9 @@ function apply(id){
     timerId=null;
     frozenRemaining=0;
     freezeStarted=0;
-    skills.magician=false;
-    skills.greed=false;
+    // 憤怒でリセットする強欲関連の値は、コンボ倍率だけ。
+    // 強欲の有効状態と基準値はそのまま維持する。
     greedMultiplier=1;
-    greedRecord=0;
     // 憤怒使用時はコンボ関連の強化・蓄積値も初期化する。
     skills.comboUp=0;
     skills.comboTime=0;
