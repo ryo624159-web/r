@@ -217,7 +217,7 @@ const LANG={
     '増殖':['Multiplication','When an enemy is defeated, generate 3 tiles with the minimum value on the board in random empty spaces.'],
     '依存':['Dependence','During a Combo, Base Attack increases by 6 each turn. The Combo timer is slightly reduced.'],
     '胚':['Embryo','Increase Combo by the number of merges made in one turn. The Combo timer increases whenever a skill activates.'],
-    '呪福':['Cursed Blessing','Lose 1/16 of Max HP each turn and increase Base Attack by 2%.'],
+    '呪福':['Cursed Blessing','Lose 1/8 of Max HP each turn and increase Base Attack by 6%.'],
     '背水':['Last Stand','Start each battle with half HP. Damage dealt is multiplied by Max HP ÷ Current HP ÷ 2.'],
     '帝王':['Emperor','Add the updated maximum tile value on the board to Base Attack whenever the maximum increases.'],
     '恨み':['Grudge','Increase Base Attack by 1% whenever you take damage.'],
@@ -233,7 +233,7 @@ const LANG={
     'キノコ':['Mushroom','Double all tiles with the current minimum value.'],
     '悪魔の契約':['Devil’s Contract','Double every tile on the board and reduce one Blue Level-Up skill to Lv0.'],
     '混沌':['Chaos','For the next battle only, newly generated tiles use one of the values already on the board. 2 tiles appear and 1 tile disappears each turn.'],
-    '弱者':['Weakling','Halve Max HP and add the lost Max HP to Base Attack.'],
+    '弱者':['Weakling','Halve Max HP and add half of the lost Max HP to Base Attack.'],
     '錬金術師':['Alchemist','When acquired, destroy all tiles with the minimum value and add their total value to Base Attack.'],
     '反転':['Reversal','When acquired, swap the maximum and minimum tile values on the board.'],
     '暴食':['Gluttony','When acquired, destroy one tile with the maximum value and add 1.2× its value to Base Attack.'],
@@ -246,7 +246,7 @@ const LANG={
     'コンボ延長':['Combo Extension','Greatly increase the Combo timer with each level.'],
     '基礎強化':['Base Attack Up','Multiply current Base Attack by 1.2.'],
     'コンボ強化':['Combo Up','Increase the amount added to the Combo multiplier by 0.03.'],
-    '憤怒':['Anger','Multiply Base Attack by the current Combo multiplier. Reset the Combo timer, Combo multiplier, and Combo count to their initial values.']
+    '憤怒':['Anger','Multiply Base Attack by half of the current Combo multiplier. Reset the Combo timer, Combo multiplier, and Combo count to their initial values.']
   },
   enemies:{
     'スライム':'Slime','オーガ':'Ogre','ゴーレム':'Golem','魔術師':'Mage','ハンター':'Hunter'
@@ -335,7 +335,7 @@ const defs=[
 ['増殖','敵撃破時、最小値のタイルを3つランダムな空きマスに生成。','multiplication','card'],
 ['依存','コンボ中、毎ターン基礎攻撃力+6。コンボ受付時間微減。','dependence','card'],
 ['胚','1ターンの合体数だけコンボ増加。スキルが発動するたびコンボ受付時間増加。','embryo','card'],
-['呪福','毎ターンHPを最大HPの1/16失い、基礎攻撃力2%上昇。','blessing','card'],
+['呪福','毎ターンHPを最大HPの1/8失い、基礎攻撃力6%上昇。','blessing','card'],
 ['背水','戦闘開始時、HPを半分にする。与えるダメージを最大HP÷現在HP÷2倍する。','backwater','card'],
 ['帝王','盤面の最大値を基礎攻撃力に加算する。','emperor','card'],
 ['恨み','ダメージを受けるたび基礎攻撃力1%上昇。','grudge','card'],
@@ -351,7 +351,7 @@ const defs=[
 ['キノコ','現在の最小のタイルを全て2倍。','mushroom','repeat'],
 ['悪魔の契約','盤面にある全てのタイルを2倍にし、青色のレベルアップスキルを1つLv0にする。','devil','repeat'],
 ['混沌','次の戦闘のみ、新タイルは盤面のタイルのどれかになり、毎ターン2個出現＋1個消滅。','chaos','repeat'],
-['弱者','最大HPを半分にし、減った最大HP分を基礎攻撃力に加える。','weakling','repeat'],
+['弱者','最大HPを半分にし、減った最大HPの半分を基礎攻撃力に加える。','weakling','repeat'],
 ['錬金術師','取得時、最小値を全て消し、消した合計を基礎攻撃力へ加算する。','alchemist','repeat'],
 ['反転','取得時、盤面の最大値と最小値を入れ替える。','reversal','repeat'],
 ['暴食','取得時、最大のタイルを1つ消し、その値の1.2倍を基礎攻撃力へ加える。','gluttony','repeat'],
@@ -364,7 +364,7 @@ const defs=[
 ['コンボ延長','Lvごとにコンボ受付時間大幅増加','comboTime','level'],
 ['基礎強化','現在の基礎攻撃力を1.2倍。','baseUp','level'],
 ['コンボ強化','コンボ倍率の上昇量+0.03。','comboUp','level'],
-['憤怒','現在のコンボ倍率を基礎攻撃力に掛ける。コンボ受付時間・コンボ倍率・コンボ数を初期値に戻す。','anger','repeat']
+['憤怒','現在のコンボ倍率の半分を基礎攻撃力に掛ける。コンボ受付時間・コンボ倍率・コンボ数を初期値に戻す。','anger','repeat']
 ];
 
 function $(x){return document.getElementById(x)}
@@ -918,6 +918,7 @@ function move(dir){
   if(skills.chaos)removeRandom();
 
   if(g.length){
+    if(skills.embryo)embryoTimeBonus+=50;
     combo+=skills.embryo?g.length:1;
     deadline=Date.now()+timeLimit();
     frozenRemaining=0;
@@ -1044,9 +1045,9 @@ function move(dir){
   if(skills.hero)heroBonus+=.01;
 
   if(skills.blessing){
-    let loss=Math.max(1,Math.floor(maxHp/16));
+    let loss=Math.max(1,Math.floor(maxHp/8));
     playerHp=Math.max(0,playerHp-loss);
-    baseAttack*=1.02
+    baseAttack*=1.06
   }
 
   if(isDead())gameOver();
@@ -1241,9 +1242,6 @@ function apply(id){
   let s=defs.find(x=>x[2]===id);
   if(!s)return;
 
-  // 胚：スキルが発動するたびにコンボ受付時間を50ms延長
-  if(skills.embryo)embryoTimeBonus+=50;
-
   let beforeApply=board.slice();
 
   if(s[3]==='repeat'||s[3]==='level'){
@@ -1411,17 +1409,17 @@ function apply(id){
   }
 
   if(id==='blessing'){
-    let loss=Math.max(1,Math.floor(maxHp/16));
+    let loss=Math.max(1,Math.floor(maxHp/8));
     playerHp=Math.max(0,playerHp-loss);
-    baseAttack*=1.02
+    baseAttack*=1.06
   }
 
   if(id==='anger'){
     const currentMultiplier=mult();
     angerComboMode=true;
-    baseAttack*=currentMultiplier;
+    baseAttack*=currentMultiplier/2;
 
-    // 憤怒は現在のコンボ倍率を攻撃力へ変換してから、
+    // 憤怒は現在のコンボ倍率の半分を攻撃力へ変換してから、
     // コンボ関連の状態とマジシャン／強欲の倍率効果を初期化する。
     combo=0;
     heroBonus=0;
@@ -1434,6 +1432,10 @@ function apply(id){
     skills.greed=false;
     greedMultiplier=1;
     greedRecord=0;
+    // 憤怒使用時はコンボ関連の強化・蓄積値も初期化する。
+    skills.comboUp=0;
+    skills.comboTime=0;
+    embryoTimeBonus=0;
     // ウロボロスの使用状態は憤怒ではリセットしない。
   }
 
