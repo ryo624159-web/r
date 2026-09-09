@@ -1170,8 +1170,10 @@ function win(){
 
       for(let z=0;z<n;z++){
         let k=Math.floor(Math.random()*e.length),i=e.splice(k,1)[0];
-        board[i]=spawnMin;
-        turnNewTiles.push({i,v:spawnMin})
+        const spawnedValue=spawnMin*(skills.extraction?4:1);
+        if(spawnedValue<=minSpawnValue)continue;
+        board[i]=spawnedValue;
+        turnNewTiles.push({i,v:spawnedValue})
       }
     }
   }
@@ -1423,7 +1425,7 @@ function apply(id){
     // 憤怒でリセットする強欲関連の値は、コンボ倍率だけ。
     // 強欲の有効状態と基準値はそのまま維持する。
     greedMultiplier=1;
-    // 憤怒使用時はコンボ関連の強化・蓄積値も初期化する。
+    // 憤怒使用時はコンボ関連のレベルをLv0にする。
     skills.comboUp=0;
     skills.comboTime=0;
     embryoTimeBonus=0;
