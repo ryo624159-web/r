@@ -918,7 +918,6 @@ function move(dir){
   if(skills.chaos)removeRandom();
 
   if(g.length){
-    if(skills.embryo)embryoTimeBonus+=50;
     combo+=skills.embryo?g.length:1;
     deadline=Date.now()+timeLimit();
     frozenRemaining=0;
@@ -1241,6 +1240,9 @@ function gameOver(){
 function apply(id){
   let s=defs.find(x=>x[2]===id);
   if(!s)return;
+
+  // 胚：スキルが発動するたびにコンボ受付時間を50ms延長
+  if(skills.embryo)embryoTimeBonus+=50;
 
   let beforeApply=board.slice();
 
