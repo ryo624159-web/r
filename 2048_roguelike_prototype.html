@@ -498,7 +498,7 @@ function triggerGreed(){
 
 function spawnEnemy(){
   let t=enemies[(floor-1)%enemies.length],
-      hp=floor===1?400:Math.round(enemy.maxHp*(floor>100?floor/50:1.4)),
+      hp=floor===1?1000:Math.round(enemy.maxHp*(floor>100?floor/50:1.4)),
       atk=2;
 
   if(skills.backwater)playerHp=Math.max(0,maxHp/2);
